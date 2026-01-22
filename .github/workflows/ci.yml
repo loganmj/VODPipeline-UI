@@ -32,8 +32,7 @@ jobs:
       - name: Test
         run: |
           # Find test projects
-          TEST_PROJECTS=$(find ../.. -name "*Test*.csproj" \
-            -o -name "*Tests.csproj" 2>/dev/null)
+          TEST_PROJECTS=$(find "$GITHUB_WORKSPACE" \( -name "*Test*.csproj" -o -name "*Tests.csproj" \) 2>/dev/null)
           if [ -z "$TEST_PROJECTS" ]; then
             echo "No test projects found. Skipping tests."
             exit 0
