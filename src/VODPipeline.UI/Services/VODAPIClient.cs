@@ -16,9 +16,9 @@ namespace VODPipeline.UI.Services
             return await _http.GetFromJsonAsync<JobStatus>("api/status");
         }
 
-        public async Task<JobStatus?> GetConfigAsync()
+        public async Task<PipelineConfig?> GetConfigAsync()
         {
-            return await _http.GetFromJsonAsync<JobStatus>("api/config");
+            return await _http.GetFromJsonAsync<PipelineConfig>("api/config");
         }
 
         // Add more endpoints as needed
