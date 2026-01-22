@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '6.0.x'
+
+      - name: Discover project
+        id: discover
+        run: |
+          # Find solution file or main project
+          if ls *.sln >/dev/null 2>&1; then
+            echo "target=$(ls *.sln | head -n 1)" >> $GITHUB_OUTPUT
+          else
+            PROJECT=$(find . -name "*.csproj" -not -path "*/obj/*" -not -path "*/*Test*.csproj" | head -n 1)
+            echo "target=$PROJECT" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Restore dependencies
+        run: dotnet restore "${{ steps.discover.outputs.target }}"
+
+      - name: Build
+        run: dotnet build "${{ steps.discover.outputs.target }}" --no-restore --configuration Release
+
+      - name: Test
+        run: |
+          # Find test projects
+          TEST_PROJECTS=$(find "$GITHUB_WORKSPACE" \( -name "*Test*.csproj" -o -name "*Tests.csproj" \) 2>/dev/null)
+          if [ -z "$TEST_PROJECTS" ]; then
+            echo "No test projects found. Skipping tests."
+            exit 0
+          fi
+          # Run tests if found, one project at a time
+          for PROJECT in $TEST_PROJECTS; do
+            echo "Running tests for $PROJECT"
+            dotnet test "$PROJECT" --no-restore --configuration Release \
+              --verbosity normal
+          done
