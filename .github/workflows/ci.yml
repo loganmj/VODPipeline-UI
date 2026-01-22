@@ -48,6 +48,6 @@ jobs:
           # Run tests if found, one project at a time
           for PROJECT in $TEST_PROJECTS; do
             echo "Running tests for $PROJECT"
-            dotnet test "$PROJECT" --no-restore --no-build --configuration Release \
+            dotnet test "$PROJECT" --no-restore --configuration Release \
               --verbosity normal
           done
