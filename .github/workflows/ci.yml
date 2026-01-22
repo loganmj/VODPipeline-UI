@@ -20,25 +20,22 @@ jobs:
         with:
           dotnet-version: '6.0.x'
 
-      - name: Restore dependencies
+      - name: Discover project
+        id: discover
         run: |
           # Find solution file or main project
-          if [ -f "*.sln" ]; then
-            dotnet restore *.sln
+          if ls *.sln >/dev/null 2>&1; then
+            echo "target=$(ls *.sln | head -n 1)" >> $GITHUB_OUTPUT
           else
             PROJECT=$(find . -name "*.csproj" -not -path "*/obj/*" -not -path "*/*Test*.csproj" | head -n 1)
-            dotnet restore "$PROJECT"
+            echo "target=$PROJECT" >> $GITHUB_OUTPUT
           fi
 
+      - name: Restore dependencies
+        run: dotnet restore "${{ steps.discover.outputs.target }}"
+
       - name: Build
-        run: |
-          # Find solution file or main project
-          if [ -f "*.sln" ]; then
-            dotnet build *.sln --no-restore --configuration Release
-          else
-            PROJECT=$(find . -name "*.csproj" -not -path "*/obj/*" -not -path "*/*Test*.csproj" | head -n 1)
-            dotnet build "$PROJECT" --no-restore --configuration Release
-          fi
+        run: dotnet build "${{ steps.discover.outputs.target }}" --no-restore --configuration Release
 
       - name: Test
         run: |
