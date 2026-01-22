@@ -1,6 +1,8 @@
 @using VODPipeline.UI.Data
 @using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Logging
 @implements IAsyncDisposable
+@inject ILogger<CurrentJob> Logger
 
 <div class="current-job">
     @if (JobStatus?.IsRunning == true)
@@ -81,7 +83,7 @@
         catch (Exception ex)
         {
             // Log error or handle connection failure gracefully
-            Console.WriteLine($"SignalR connection error: {ex.Message}");
+            Logger.LogError(ex, "Failed to establish SignalR connection to hub at {HubUrl}", HubUrl);
         }
     }
 

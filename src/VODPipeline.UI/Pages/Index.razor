@@ -2,6 +2,7 @@
 @using VODPipeline.UI.Data
 @using VODPipeline.UI.Services
 @inject VODAPIClient Api
+@inject IConfiguration Configuration
 
 <h3>Pipeline Dashboard</h3>
 
@@ -16,10 +17,11 @@ else
 
 @code {
     private JobStatus? status;
-    private string signalRHubUrl = ""; // Configure with actual SignalR hub URL when available
+    private string? signalRHubUrl;
 
     protected override async Task OnInitializedAsync()
     {
         status = await Api.GetStatusAsync();
+        signalRHubUrl = Configuration["SignalR:HubUrl"];
     }
 }
