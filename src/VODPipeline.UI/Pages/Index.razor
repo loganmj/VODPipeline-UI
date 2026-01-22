@@ -1,9 +1,27 @@
 ﻿@page "/"
+@using VODPipeline.UI.Data
+@using VODPipeline.UI.Services
+@inject VODAPIClient Api
 
-<PageTitle>Index</PageTitle>
+<h3>Pipeline Status</h3>
 
-<h1>Hello, world!</h1>
+@if (status == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <p>Running: @status.IsRunning</p>
+    <p>Current File: @status.CurrentFile</p>
+    <p>Stage: @status.Stage</p>
+    <p>Percent: @status.Percent</p>
+}
 
-Welcome to your new app.
+@code {
+    private JobStatus? status;
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+    protected override async Task OnInitializedAsync()
+    {
+        status = await Api.GetStatusAsync();
+    }
+}
