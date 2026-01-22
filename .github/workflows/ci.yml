@@ -39,5 +39,5 @@ jobs:
             exit 0
           fi
           # Run tests if found
-          dotnet test --no-restore --configuration Release \
+          dotnet test $TEST_PROJECTS --no-restore --no-build --configuration Release \
             --verbosity normal
