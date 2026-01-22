@@ -7,7 +7,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddHttpClient<VODAPIClient>(client =>
 {
-    client.BaseAddress = new Uri("http://placholder-uri.local:1234/");
+    client.BaseAddress = new Uri("http://placeholder-uri.local:1234/");
 });
 
 var app = builder.Build();
