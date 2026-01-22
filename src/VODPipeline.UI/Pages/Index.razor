@@ -3,7 +3,7 @@
 @using VODPipeline.UI.Services
 @inject VODAPIClient Api
 
-<h3>Pipeline Status</h3>
+<h3>Pipeline Dashboard</h3>
 
 @if (status == null)
 {
@@ -11,14 +11,12 @@
 }
 else
 {
-    <p>Running: @status.IsRunning</p>
-    <p>Current File: @status.CurrentFile</p>
-    <p>Stage: @status.Stage</p>
-    <p>Percent: @status.Percent</p>
+    <CurrentJob JobStatus="@status" HubUrl="@signalRHubUrl" />
 }
 
 @code {
     private JobStatus? status;
+    private string signalRHubUrl = ""; // Configure with actual SignalR hub URL when available
 
     protected override async Task OnInitializedAsync()
     {
