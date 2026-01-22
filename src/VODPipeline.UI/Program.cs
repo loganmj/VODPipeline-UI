@@ -1,8 +1,14 @@
+using VODPipeline.UI.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
+builder.Services.AddHttpClient<VODAPIClient>(client =>
+{
+    client.BaseAddress = new Uri("http://placholder-uri.local:1234/");
+});
 
 var app = builder.Build();
 
