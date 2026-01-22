@@ -1,0 +1,43 @@
+.current-job {
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 1rem;
+    background-color: #f9f9f9;
+}
+
+.current-job h4 {
+    margin-top: 0;
+    margin-bottom: 1rem;
+    color: #333;
+}
+
+.job-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.job-field {
+    display: flex;
+    align-items: center;
+}
+
+.job-field strong {
+    min-width: 100px;
+    color: #555;
+}
+
+.no-job {
+    text-align: center;
+    padding: 2rem;
+    color: #888;
+}
+
+.no-job p {
+    margin: 0;
+    font-style: italic;
+}
+
+.text-muted {
+    color: #6c757d;
+}

@@ -1,0 +1,111 @@
+@using VODPipeline.UI.Data
+@using Microsoft.AspNetCore.SignalR.Client
+@implements IAsyncDisposable
+
+<div class="current-job">
+    @if (JobStatus?.IsRunning == true)
+    {
+        <h4>Current Job</h4>
+        <div class="job-details">
+            <div class="job-field">
+                <strong>File:</strong> @JobStatus.CurrentFile
+            </div>
+            <div class="job-field">
+                <strong>Stage:</strong> @JobStatus.Stage
+            </div>
+            <div class="job-field">
+                <strong>Progress:</strong> @(JobStatus.Percent ?? 0)%
+            </div>
+            @if (JobStatus.EstimatedTimeRemaining.HasValue)
+            {
+                <div class="job-field">
+                    <strong>ETA:</strong> @FormatTimeSpan(JobStatus.EstimatedTimeRemaining.Value)
+                </div>
+            }
+            @if (JobStatus.ElapsedTime.HasValue)
+            {
+                <div class="job-field">
+                    <strong>Elapsed:</strong> @FormatTimeSpan(JobStatus.ElapsedTime.Value)
+                </div>
+            }
+            @if (JobStatus.LastUpdated.HasValue)
+            {
+                <div class="job-field text-muted">
+                    <small>Last Updated: @JobStatus.LastUpdated.Value.ToString("HH:mm:ss")</small>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="no-job">
+            <p>No active job running</p>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public JobStatus? JobStatus { get; set; }
+
+    [Parameter]
+    public string? HubUrl { get; set; }
+
+    private HubConnection? hubConnection;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(HubUrl))
+        {
+            await InitializeSignalRConnection();
+        }
+    }
+
+    private async Task InitializeSignalRConnection()
+    {
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(HubUrl!)
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.On<JobStatus>("JobStatusUpdated", (updatedStatus) =>
+            {
+                JobStatus = updatedStatus;
+                InvokeAsync(StateHasChanged);
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            // Log error or handle connection failure gracefully
+            Console.WriteLine($"SignalR connection error: {ex.Message}");
+        }
+    }
+
+    private string FormatTimeSpan(TimeSpan timeSpan)
+    {
+        if (timeSpan.TotalHours >= 1)
+        {
+            return $"{(int)timeSpan.TotalHours}h {timeSpan.Minutes}m {timeSpan.Seconds}s";
+        }
+        else if (timeSpan.TotalMinutes >= 1)
+        {
+            return $"{timeSpan.Minutes}m {timeSpan.Seconds}s";
+        }
+        else
+        {
+            return $"{timeSpan.Seconds}s";
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+}
