@@ -11,9 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    defaults:
-      run:
-        working-directory: src/VODPipeline.UI
 
     steps:
       - uses: actions/checkout@v4
@@ -24,10 +21,24 @@ jobs:
           dotnet-version: '6.0.x'
 
       - name: Restore dependencies
-        run: dotnet restore
+        run: |
+          # Find solution file or main project
+          if [ -f "*.sln" ]; then
+            dotnet restore *.sln
+          else
+            PROJECT=$(find . -name "*.csproj" -not -path "*/obj/*" -not -path "*/*Test*.csproj" | head -n 1)
+            dotnet restore "$PROJECT"
+          fi
 
       - name: Build
-        run: dotnet build --no-restore --configuration Release
+        run: |
+          # Find solution file or main project
+          if [ -f "*.sln" ]; then
+            dotnet build *.sln --no-restore --configuration Release
+          else
+            PROJECT=$(find . -name "*.csproj" -not -path "*/obj/*" -not -path "*/*Test*.csproj" | head -n 1)
+            dotnet build "$PROJECT" --no-restore --configuration Release
+          fi
 
       - name: Test
         run: |
