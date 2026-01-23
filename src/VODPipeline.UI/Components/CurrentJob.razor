@@ -33,7 +33,7 @@
             @if (JobStatus.LastUpdated.HasValue)
             {
                 <div class="job-field text-muted">
-                    <small>Last Updated: @JobStatus.LastUpdated.Value.ToString("HH:mm:ss")</small>
+                    <small>Last Updated: @JobStatus.LastUpdated.Value.ToLocalTime().ToString("HH:mm:ss zzz")</small>
                 </div>
             }
         </div>
@@ -75,6 +75,8 @@
     protected override async Task OnParametersSetAsync()
     {
         // Handle HubUrl changes
+        // Note: JobStatus parameter updates from parent will be overridden by SignalR events
+        // when the connection is active, as SignalR provides the authoritative real-time state.
         if (HubUrl != previousHubUrl)
         {
             if (hubConnection is not null)
@@ -102,6 +104,31 @@
                 .WithAutomaticReconnect()
                 .Build();
 
+            // Handle reconnection events
+            hubConnection.Reconnecting += async (error) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    signalRConnectionFailed = true;
+                });
+            };
+
+            hubConnection.Reconnected += async (connectionId) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    signalRConnectionFailed = false;
+                });
+            };
+
+            hubConnection.Closed += async (error) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    signalRConnectionFailed = true;
+                });
+            };
+
             hubConnection.On<JobStatus>("JobStatusUpdated", async (updatedStatus) =>
             {
                 try
@@ -109,7 +136,6 @@
                     await InvokeAsync(() =>
                     {
                         JobStatus = updatedStatus;
-                        StateHasChanged();
                     });
                 }
                 catch (Exception ex)
@@ -124,6 +150,23 @@
         {
             signalRConnectionFailed = true;
             Logger.LogError(ex, "Failed to establish SignalR connection to hub at {HubUrl}", HubUrl);
+            
+            // Cleanup partially initialized connection
+            try
+            {
+                if (hubConnection is not null)
+                {
+                    await hubConnection.DisposeAsync();
+                }
+            }
+            catch (Exception disposeEx)
+            {
+                Logger.LogError(disposeEx, "Error disposing SignalR hub connection after failed start.");
+            }
+            finally
+            {
+                hubConnection = null;
+            }
         }
     }
 
@@ -162,9 +205,17 @@
         {
             return $"{timeSpan.Minutes}m {timeSpan.Seconds}s";
         }
-        else
+        else if (timeSpan.TotalSeconds >= 1)
         {
             return $"{timeSpan.Seconds}s";
+        }
+        else if (timeSpan.TotalMilliseconds >= 1)
+        {
+            return $"{timeSpan.TotalMilliseconds:F0}ms";
+        }
+        else
+        {
+            return "<1ms";
         }
     }
 
