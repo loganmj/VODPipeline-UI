@@ -1,8 +1,10 @@
 @using VODPipeline.UI.Data
+@using VODPipeline.UI.Services
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Logging
 @implements IAsyncDisposable
 @inject ILogger<SystemHealth> Logger
+@inject VODAPIClient Api
 
 <div class="system-health">
     <h4>System Health</h4>
@@ -114,6 +116,12 @@
 </div>
 
 @code {
+    // Component name constants for event handling
+    private const string ComponentNameFunction = "Function";
+    private const string ComponentNameAPI = "API";
+    private const string ComponentNameDatabase = "Database";
+    private const string ComponentNameFileShare = "FileShare";
+
     [Parameter]
     public SystemHealthStatus? HealthStatus { get; set; }
 
@@ -126,6 +134,19 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Load initial health data from API only if no value was provided by the parent
+        if (HealthStatus == null)
+        {
+            try
+            {
+                HealthStatus = await Api.GetHealthAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to load initial health data from API.");
+            }
+        }
+
         if (!string.IsNullOrEmpty(HubUrl))
         {
             await InitializeSignalRConnection();
@@ -193,12 +214,34 @@
                     await InvokeAsync(() =>
                     {
                         HealthStatus = updatedStatus;
+                        StateHasChanged();
                     });
                 }
                 catch (Exception ex)
                 {
                     Logger.LogError(ex, "Error handling SystemHealthUpdated SignalR event.");
                 }
+            });
+
+            // Subscribe to individual component health events
+            hubConnection.On<ComponentHealth>("functionHeartbeat", async (componentHealth) =>
+            {
+                await HandleComponentHealthUpdate(componentHealth, ComponentNameFunction, "functionHeartbeat");
+            });
+
+            hubConnection.On<ComponentHealth>("apiHeartbeat", async (componentHealth) =>
+            {
+                await HandleComponentHealthUpdate(componentHealth, ComponentNameAPI, "apiHeartbeat");
+            });
+
+            hubConnection.On<ComponentHealth>("dbStatusChanged", async (componentHealth) =>
+            {
+                await HandleComponentHealthUpdate(componentHealth, ComponentNameDatabase, "dbStatusChanged");
+            });
+
+            hubConnection.On<ComponentHealth>("fileShareStatusChanged", async (componentHealth) =>
+            {
+                await HandleComponentHealthUpdate(componentHealth, ComponentNameFileShare, "fileShareStatusChanged");
             });
 
             await hubConnection.StartAsync();
@@ -223,6 +266,45 @@
             {
                 hubConnection = null;
             }
+        }
+    }
+
+    private async Task HandleComponentHealthUpdate(ComponentHealth componentHealth, string componentName, string eventName)
+    {
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                if (HealthStatus == null)
+                {
+                    HealthStatus = new SystemHealthStatus();
+                }
+
+                switch (componentName)
+                {
+                    case ComponentNameFunction:
+                        HealthStatus.Function = componentHealth;
+                        break;
+                    case ComponentNameAPI:
+                        HealthStatus.API = componentHealth;
+                        break;
+                    case ComponentNameDatabase:
+                        HealthStatus.Database = componentHealth;
+                        break;
+                    case ComponentNameFileShare:
+                        HealthStatus.FileShare = componentHealth;
+                        break;
+                    default:
+                        Logger.LogWarning("Received update for unknown component: {ComponentName}", componentName);
+                        return;
+                }
+                HealthStatus.LastUpdated = DateTime.UtcNow;
+                StateHasChanged();
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error handling {EventName} SignalR event.", eventName);
         }
     }
 
