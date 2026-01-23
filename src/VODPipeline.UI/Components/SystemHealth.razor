@@ -281,6 +281,9 @@
                         case "FileShare":
                             HealthStatus.FileShare = componentHealth;
                             break;
+                        default:
+                            Logger.LogWarning("Received update for unknown component: {ComponentName}", componentName);
+                            return;
                     }
                     HealthStatus.LastUpdated = DateTime.UtcNow;
                     StateHasChanged();
