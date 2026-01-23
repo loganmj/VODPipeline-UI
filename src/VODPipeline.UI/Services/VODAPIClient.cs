@@ -23,6 +23,11 @@ namespace VODPipeline.UI.Services
 
         public async Task<List<JobHistoryItem>?> GetRecentJobsAsync(int count = 10)
         {
+            if (count <= 0)
+            {
+                throw new ArgumentException("Count must be positive", nameof(count));
+            }
+
             return await _http.GetFromJsonAsync<List<JobHistoryItem>>($"api/jobs/recent?count={count}");
         }
 

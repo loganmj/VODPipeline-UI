@@ -13,6 +13,12 @@
     {
         <p>Loading recent jobs...</p>
     }
+    else if (hasLoadError)
+    {
+        <div class="error-message">
+            <p>Unable to load jobs - please try again</p>
+        </div>
+    }
     else if (jobs == null || !jobs.Any())
     {
         <div class="no-jobs">
@@ -35,7 +41,12 @@
                 <tbody>
                     @foreach (var job in jobs)
                     {
-                        <tr class="job-row" @onclick="@(() => NavigateToJobDetail(job.JobId))" style="cursor: pointer;">
+                        <tr class="job-row"
+                            role="button"
+                            tabindex="0"
+                            style="cursor: pointer;"
+                            @onclick="@(() => NavigateToJobDetail(job.JobId))"
+                            @onkeydown=@(e => { if (e.Key == "Enter" || e.Key == " ") { NavigateToJobDetail(job.JobId); } })>
                             <td>@job.JobId</td>
                             <td>@job.FileName</td>
                             <td>
@@ -61,17 +72,25 @@
 </div>
 
 @code {
+    private int _maxJobs = 10;
+
     [Parameter]
-    public int MaxJobs { get; set; } = 10;
+    public int MaxJobs
+    {
+        get => _maxJobs;
+        set => _maxJobs = value > 0 ? value : 10;
+    }
 
     [Parameter]
     public string? HubUrl { get; set; }
 
     private List<JobHistoryItem>? jobs;
     private bool isLoading = true;
+    private bool hasLoadError = false;
     private HubConnection? hubConnection;
     private bool signalRConnectionFailed = false;
     private string? previousHubUrl;
+    private bool isRefreshing = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -105,19 +124,29 @@
 
     private async Task LoadRecentJobs()
     {
+        // Prevent concurrent refresh operations
+        if (isRefreshing)
+        {
+            return;
+        }
+
         try
         {
+            isRefreshing = true;
             isLoading = true;
+            hasLoadError = false;
             jobs = await Api.GetRecentJobsAsync(MaxJobs);
         }
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading recent jobs.");
+            hasLoadError = true;
             jobs = new List<JobHistoryItem>();
         }
         finally
         {
             isLoading = false;
+            isRefreshing = false;
         }
     }
 
@@ -138,7 +167,6 @@
                 await InvokeAsync(() =>
                 {
                     signalRConnectionFailed = true;
-                    StateHasChanged();
                 });
             };
 
@@ -147,7 +175,6 @@
                 await InvokeAsync(() =>
                 {
                     signalRConnectionFailed = false;
-                    StateHasChanged();
                 });
             };
 
@@ -156,7 +183,6 @@
                 await InvokeAsync(() =>
                 {
                     signalRConnectionFailed = true;
-                    StateHasChanged();
                 });
             };
 
@@ -169,33 +195,11 @@
                     {
                         // Reload the recent jobs list when a job completes
                         await LoadRecentJobs();
-                        StateHasChanged();
                     });
                 }
                 catch (Exception ex)
                 {
                     Logger.LogError(ex, "Error handling JobCompleted SignalR event.");
-                }
-            });
-
-            // Listen for job status updates (in case status changes)
-            hubConnection.On<JobStatus>("JobStatusUpdated", async (updatedStatus) =>
-            {
-                try
-                {
-                    await InvokeAsync(async () =>
-                    {
-                        // If a job just completed, refresh the list
-                        if (updatedStatus?.IsRunning == false)
-                        {
-                            await LoadRecentJobs();
-                            StateHasChanged();
-                        }
-                    });
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex, "Error handling JobStatusUpdated SignalR event.");
                 }
             });
 
