@@ -107,6 +107,14 @@
     {
         if (hubConnection is not null)
         {
+            try
+            {
+                await hubConnection.StopAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error while stopping SignalR hub connection.");
+            }
             await hubConnection.DisposeAsync();
         }
     }
