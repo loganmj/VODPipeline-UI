@@ -1,8 +1,10 @@
 @using VODPipeline.UI.Data
+@using VODPipeline.UI.Services
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Logging
 @implements IAsyncDisposable
 @inject ILogger<CurrentJob> Logger
+@inject VODAPIClient Api
 
 <div class="current-job">
     @if (JobStatus?.IsRunning == true)
@@ -65,6 +67,19 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Fetch initial job state from API if not provided via parameter
+        if (JobStatus == null)
+        {
+            try
+            {
+                JobStatus = await Api.GetStatusAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to fetch initial job status from API.");
+            }
+        }
+
         if (!string.IsNullOrEmpty(HubUrl))
         {
             await InitializeSignalRConnection();
@@ -129,18 +144,68 @@
                 });
             };
 
-            hubConnection.On<JobStatus>("JobStatusUpdated", async (updatedStatus) =>
+            // Subscribe to job lifecycle events
+            hubConnection.On<JobStatus>("jobStarted", async (updatedStatus) =>
             {
                 try
                 {
                     await InvokeAsync(() =>
                     {
                         JobStatus = updatedStatus;
+                        StateHasChanged();
                     });
                 }
                 catch (Exception ex)
                 {
-                    Logger.LogError(ex, "Error handling JobStatusUpdated SignalR event.");
+                    Logger.LogError(ex, "Error handling jobStarted SignalR event.");
+                }
+            });
+
+            hubConnection.On<JobStatus>("jobProgressUpdated", async (updatedStatus) =>
+            {
+                try
+                {
+                    await InvokeAsync(() =>
+                    {
+                        JobStatus = updatedStatus;
+                        StateHasChanged();
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error handling jobProgressUpdated SignalR event.");
+                }
+            });
+
+            hubConnection.On<JobStatus>("jobStateChanged", async (updatedStatus) =>
+            {
+                try
+                {
+                    await InvokeAsync(() =>
+                    {
+                        JobStatus = updatedStatus;
+                        StateHasChanged();
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error handling jobStateChanged SignalR event.");
+                }
+            });
+
+            hubConnection.On<JobStatus>("jobCompleted", async (updatedStatus) =>
+            {
+                try
+                {
+                    await InvokeAsync(() =>
+                    {
+                        JobStatus = updatedStatus;
+                        StateHasChanged();
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error handling jobCompleted SignalR event.");
                 }
             });
 
