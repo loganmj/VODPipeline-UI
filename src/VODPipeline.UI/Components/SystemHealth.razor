@@ -134,14 +134,17 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Load initial health data from API
-        try
+        // Load initial health data from API only if no value was provided by the parent
+        if (HealthStatus == null)
         {
-            HealthStatus = await Api.GetHealthAsync();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Failed to load initial health data from API.");
+            try
+            {
+                HealthStatus = await Api.GetHealthAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Failed to load initial health data from API.");
+            }
         }
 
         if (!string.IsNullOrEmpty(HubUrl))
@@ -211,6 +214,7 @@
                     await InvokeAsync(() =>
                     {
                         HealthStatus = updatedStatus;
+                        StateHasChanged();
                     });
                 }
                 catch (Exception ex)
@@ -271,29 +275,31 @@
         {
             await InvokeAsync(() =>
             {
-                if (HealthStatus != null)
+                if (HealthStatus == null)
                 {
-                    switch (componentName)
-                    {
-                        case ComponentNameFunction:
-                            HealthStatus.Function = componentHealth;
-                            break;
-                        case ComponentNameAPI:
-                            HealthStatus.API = componentHealth;
-                            break;
-                        case ComponentNameDatabase:
-                            HealthStatus.Database = componentHealth;
-                            break;
-                        case ComponentNameFileShare:
-                            HealthStatus.FileShare = componentHealth;
-                            break;
-                        default:
-                            Logger.LogWarning("Received update for unknown component: {ComponentName}", componentName);
-                            return;
-                    }
-                    HealthStatus.LastUpdated = DateTime.UtcNow;
-                    StateHasChanged();
+                    HealthStatus = new SystemHealthStatus();
                 }
+
+                switch (componentName)
+                {
+                    case ComponentNameFunction:
+                        HealthStatus.Function = componentHealth;
+                        break;
+                    case ComponentNameAPI:
+                        HealthStatus.API = componentHealth;
+                        break;
+                    case ComponentNameDatabase:
+                        HealthStatus.Database = componentHealth;
+                        break;
+                    case ComponentNameFileShare:
+                        HealthStatus.FileShare = componentHealth;
+                        break;
+                    default:
+                        Logger.LogWarning("Received update for unknown component: {ComponentName}", componentName);
+                        return;
+                }
+                HealthStatus.LastUpdated = DateTime.UtcNow;
+                StateHasChanged();
             });
         }
         catch (Exception ex)
