@@ -46,8 +46,7 @@
                             tabindex="0"
                             style="cursor: pointer;"
                             @onclick="@(() => NavigateToJobDetail(job.JobId))"
-                            @onkeydown="@(e => HandleKeyDown(e, job.JobId))"
-                            @onkeydown:preventDefault="@preventDefaultForSpace">
+                            @onkeydown="@(e => HandleKeyDown(e, job.JobId))">
                             <td>@job.JobId</td>
                             <td>@job.FileName</td>
                             <td>
@@ -92,7 +91,6 @@
     private bool signalRConnectionFailed = false;
     private string? previousHubUrl;
     private bool isRefreshing = false;
-    private bool preventDefaultForSpace = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -164,7 +162,7 @@
                 .Build();
 
             // Handle reconnection events
-            hubConnection.Reconnecting += async (error) =>
+            hubConnection.Reconnecting += async (_) =>
             {
                 await InvokeAsync(() =>
                 {
@@ -172,7 +170,7 @@
                 });
             };
 
-            hubConnection.Reconnected += async (connectionId) =>
+            hubConnection.Reconnected += async (_) =>
             {
                 await InvokeAsync(() =>
                 {
@@ -180,7 +178,7 @@
                 });
             };
 
-            hubConnection.Closed += async (error) =>
+            hubConnection.Closed += async (_) =>
             {
                 await InvokeAsync(() =>
                 {
@@ -189,7 +187,7 @@
             };
 
             // Listen for job completed events
-            hubConnection.On<JobHistoryItem>("JobCompleted", async (completedJob) =>
+            hubConnection.On<JobHistoryItem>("JobCompleted", async (_) =>
             {
                 try
                 {
@@ -270,8 +268,15 @@
 
     private void HandleKeyDown(KeyboardEventArgs e, string? jobId)
     {
-        if (e.Key == "Enter" || e.Key == " ")
+        if (e.Key == "Enter")
         {
+            NavigateToJobDetail(jobId);
+        }
+        else if (e.Key == " ")
+        {
+            // Space key activates the button
+            // Note: Cannot prevent default in Blazor without JavaScript interop
+            // Page may scroll when space is pressed
             NavigateToJobDetail(jobId);
         }
     }
