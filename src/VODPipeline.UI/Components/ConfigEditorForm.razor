@@ -1,0 +1,353 @@
+@using VODPipeline.UI.Data
+@using VODPipeline.UI.Services
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Logging
+@implements IAsyncDisposable
+@inject VODAPIClient Api
+@inject ILogger<ConfigEditorForm> Logger
+
+<div class="config-editor-form">
+    <EditForm Model="@editConfig" OnValidSubmit="HandleSubmit">
+        <DataAnnotationsValidator />
+        
+        @if (successMessage != null)
+        {
+            <div class="success-message">
+                <p>✓ @successMessage</p>
+            </div>
+        }
+        
+        @if (errorMessage != null)
+        {
+            <div class="error-message">
+                <p>⚠️ @errorMessage</p>
+            </div>
+        }
+
+        <div class="form-group">
+            <label for="inputDir">Input Directory:</label>
+            <InputText id="inputDir" class="form-control" @bind-Value="editConfig.InputDirectory" />
+            <ValidationMessage For="@(() => editConfig.InputDirectory)" />
+        </div>
+
+        <div class="form-group">
+            <label for="outputDir">Output Directory:</label>
+            <InputText id="outputDir" class="form-control" @bind-Value="editConfig.OutputDirectory" />
+            <ValidationMessage For="@(() => editConfig.OutputDirectory)" />
+        </div>
+
+        <div class="form-group">
+            <label for="archiveDir">Archive Directory:</label>
+            <InputText id="archiveDir" class="form-control" @bind-Value="editConfig.ArchiveDirectory" />
+            <ValidationMessage For="@(() => editConfig.ArchiveDirectory)" />
+        </div>
+
+        <div class="form-group checkbox-group">
+            <label>
+                <InputCheckbox @bind-Value="editConfig.EnableHighlights" />
+                Enable Highlights
+            </label>
+        </div>
+
+        <div class="form-group checkbox-group">
+            <label>
+                <InputCheckbox @bind-Value="editConfig.EnableScenes" />
+                Enable Scenes
+            </label>
+        </div>
+
+        <div class="form-group">
+            <label for="silenceThreshold">Silence Threshold (dB):</label>
+            <InputNumber id="silenceThreshold" class="form-control" @bind-Value="editConfig.SilenceThreshold" />
+            <ValidationMessage For="@(() => editConfig.SilenceThreshold)" />
+            <small class="form-text">Typically between -60 and 0 dB</small>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="btn-save" disabled="@isSaving">
+                @if (isSaving)
+                {
+                    <span>Saving...</span>
+                }
+                else
+                {
+                    <span>Save Configuration</span>
+                }
+            </button>
+            <a href="/" class="btn-cancel">Cancel</a>
+        </div>
+    </EditForm>
+
+    @if (signalRConnectionFailed)
+    {
+        <div class="connection-warning">
+            <small>⚠️ Live updates unavailable - configuration changes may not reflect immediately</small>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public PipelineConfig? Config { get; set; }
+
+    [Parameter]
+    public string? HubUrl { get; set; }
+
+    [Parameter]
+    public EventCallback OnConfigUpdated { get; set; }
+
+    private ConfigEditModel editConfig = new ConfigEditModel();
+    private bool isSaving = false;
+    private string? successMessage;
+    private string? errorMessage;
+    private HubConnection? hubConnection;
+    private bool signalRConnectionFailed = false;
+    private string? previousHubUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Config != null)
+        {
+            // Initialize edit model with current config values
+            editConfig.InputDirectory = Config.InputDirectory;
+            editConfig.OutputDirectory = Config.OutputDirectory;
+            editConfig.ArchiveDirectory = Config.ArchiveDirectory;
+            editConfig.EnableHighlights = Config.EnableHighlights;
+            editConfig.EnableScenes = Config.EnableScenes;
+            editConfig.SilenceThreshold = Config.SilenceThreshold;
+        }
+
+        if (!string.IsNullOrEmpty(HubUrl))
+        {
+            await InitializeSignalRConnection();
+            previousHubUrl = HubUrl;
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Handle Config changes from parent
+        if (Config != null && !isSaving)
+        {
+            editConfig.InputDirectory = Config.InputDirectory;
+            editConfig.OutputDirectory = Config.OutputDirectory;
+            editConfig.ArchiveDirectory = Config.ArchiveDirectory;
+            editConfig.EnableHighlights = Config.EnableHighlights;
+            editConfig.EnableScenes = Config.EnableScenes;
+            editConfig.SilenceThreshold = Config.SilenceThreshold;
+        }
+
+        // Handle HubUrl changes
+        if (HubUrl != previousHubUrl)
+        {
+            if (hubConnection is not null)
+            {
+                await CleanupSignalRConnection();
+            }
+
+            if (!string.IsNullOrEmpty(HubUrl))
+            {
+                await InitializeSignalRConnection();
+            }
+            
+            previousHubUrl = HubUrl;
+        }
+    }
+
+    private async Task InitializeSignalRConnection()
+    {
+        try
+        {
+            signalRConnectionFailed = false;
+            
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(HubUrl!)
+                .WithAutomaticReconnect()
+                .Build();
+
+            // Handle reconnection events
+            hubConnection.Reconnecting += async (error) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    signalRConnectionFailed = true;
+                    StateHasChanged();
+                });
+            };
+
+            hubConnection.Reconnected += async (connectionId) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    signalRConnectionFailed = false;
+                    StateHasChanged();
+                });
+            };
+
+            hubConnection.Closed += async (error) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    signalRConnectionFailed = true;
+                    StateHasChanged();
+                });
+            };
+
+            // Listen for config updates from SignalR
+            hubConnection.On<PipelineConfig>("ConfigUpdated", async (updatedConfig) =>
+            {
+                try
+                {
+                    await InvokeAsync(async () =>
+                    {
+                        Config = updatedConfig;
+                        if (!isSaving)
+                        {
+                            // Update form with new values from server
+                            editConfig.InputDirectory = updatedConfig.InputDirectory;
+                            editConfig.OutputDirectory = updatedConfig.OutputDirectory;
+                            editConfig.ArchiveDirectory = updatedConfig.ArchiveDirectory;
+                            editConfig.EnableHighlights = updatedConfig.EnableHighlights;
+                            editConfig.EnableScenes = updatedConfig.EnableScenes;
+                            editConfig.SilenceThreshold = updatedConfig.SilenceThreshold;
+                        }
+                        StateHasChanged();
+                        
+                        // Notify parent component
+                        if (OnConfigUpdated.HasDelegate)
+                        {
+                            await OnConfigUpdated.InvokeAsync();
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error handling ConfigUpdated SignalR event.");
+                }
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            signalRConnectionFailed = true;
+            Logger.LogError(ex, "Failed to establish SignalR connection to hub at {HubUrl}", HubUrl);
+            
+            // Cleanup partially initialized connection
+            try
+            {
+                if (hubConnection is not null)
+                {
+                    await hubConnection.DisposeAsync();
+                }
+            }
+            catch (Exception disposeEx)
+            {
+                Logger.LogError(disposeEx, "Error disposing SignalR hub connection after failed start.");
+            }
+            finally
+            {
+                hubConnection = null;
+            }
+        }
+    }
+
+    private async Task CleanupSignalRConnection()
+    {
+        var connection = hubConnection;
+        if (connection is not null)
+        {
+            hubConnection = null; // Clear reference first to prevent reuse
+            
+            try
+            {
+                await connection.StopAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error while stopping SignalR hub connection.");
+            }
+
+            try
+            {
+                await connection.DisposeAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error while disposing SignalR hub connection.");
+            }
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        isSaving = true;
+        successMessage = null;
+        errorMessage = null;
+
+        try
+        {
+            var config = new PipelineConfig
+            {
+                InputDirectory = editConfig.InputDirectory,
+                OutputDirectory = editConfig.OutputDirectory,
+                ArchiveDirectory = editConfig.ArchiveDirectory,
+                EnableHighlights = editConfig.EnableHighlights,
+                EnableScenes = editConfig.EnableScenes,
+                SilenceThreshold = editConfig.SilenceThreshold
+            };
+
+            var response = await Api.UpdateConfigAsync(config);
+            
+            if (response.IsSuccessStatusCode)
+            {
+                successMessage = "Configuration saved successfully!";
+                Config = config;
+                
+                // Notify parent component of successful update
+                if (OnConfigUpdated.HasDelegate)
+                {
+                    await OnConfigUpdated.InvokeAsync();
+                }
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                errorMessage = $"Failed to save configuration: {response.StatusCode}. {errorContent}";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error saving configuration: {ex.Message}";
+            Logger.LogError(ex, "Error saving pipeline configuration.");
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await CleanupSignalRConnection();
+    }
+
+    private class ConfigEditModel
+    {
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Input Directory is required")]
+        public string InputDirectory { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Output Directory is required")]
+        public string OutputDirectory { get; set; } = "";
+
+        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Archive Directory is required")]
+        public string ArchiveDirectory { get; set; } = "";
+
+        public bool EnableHighlights { get; set; }
+        
+        public bool EnableScenes { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Range(-100, 0, ErrorMessage = "Silence Threshold must be between -100 and 0 dB")]
+        public int SilenceThreshold { get; set; }
+    }
+}
