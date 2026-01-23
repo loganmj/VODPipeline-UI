@@ -2,6 +2,7 @@
 @using VODPipeline.UI.Data
 @using VODPipeline.UI.Services
 @inject VODAPIClient Api
+@inject IConfiguration Configuration
 
 <h3>Configuration Editor</h3>
 
@@ -20,39 +21,12 @@ else if (config == null)
 }
 else
 {
-    <div class="config-editor">
-        <p class="editor-note">Configuration editing interface will be implemented here.</p>
-        
-        <h4>Current Configuration</h4>
-        <div class="config-display">
-            <div class="config-item">
-                <strong>Input Directory:</strong> @config.InputDirectory
-            </div>
-            <div class="config-item">
-                <strong>Output Directory:</strong> @config.OutputDirectory
-            </div>
-            <div class="config-item">
-                <strong>Archive Directory:</strong> @config.ArchiveDirectory
-            </div>
-            <div class="config-item">
-                <strong>Highlights Enabled:</strong> @(config.EnableHighlights ? "Yes" : "No")
-            </div>
-            <div class="config-item">
-                <strong>Scenes Enabled:</strong> @(config.EnableScenes ? "Yes" : "No")
-            </div>
-            <div class="config-item">
-                <strong>Silence Threshold:</strong> @config.SilenceThreshold dB
-            </div>
-        </div>
-        
-        <div class="editor-actions">
-            <a href="/" class="btn-back" aria-label="Return to the pipeline dashboard">Back to Dashboard</a>
-        </div>
-    </div>
+    <ConfigEditorForm Config="@config" HubUrl="@signalRHubUrl" OnConfigUpdated="HandleConfigUpdated" />
 }
 
 @code {
     private PipelineConfig? config;
+    private string? signalRHubUrl;
     private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
@@ -60,6 +34,21 @@ else
         try
         {
             config = await Api.GetConfigAsync();
+            signalRHubUrl = Configuration["SignalR:HubUrl"];
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+
+    private async Task HandleConfigUpdated()
+    {
+        // Reload configuration after update
+        try
+        {
+            config = await Api.GetConfigAsync();
+            StateHasChanged();
         }
         catch (Exception ex)
         {

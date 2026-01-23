@@ -36,6 +36,11 @@ namespace VODPipeline.UI.Services
             return await _http.GetFromJsonAsync<SystemHealthStatus>("api/health");
         }
 
+        public async Task<HttpResponseMessage> UpdateConfigAsync(PipelineConfig config)
+        {
+            return await _http.PostAsJsonAsync("api/config", config);
+        }
+      
         public async Task<JobDetailInfo?> GetJobDetailAsync(string jobId)
         {
             if (string.IsNullOrEmpty(jobId))
