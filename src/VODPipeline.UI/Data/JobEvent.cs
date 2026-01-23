@@ -1,6 +1,6 @@
 namespace VODPipeline.UI.Data
 {
-    public class JobEvent
+    public class JobEvent : IJobEvent
     {
         public string? EventId { get; set; }
         public string? JobId { get; set; }
