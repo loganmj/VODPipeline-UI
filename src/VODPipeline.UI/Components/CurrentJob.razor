@@ -284,9 +284,9 @@
             return true;
         }
 
-        // Check if JobID has changed (indicating a new job)
+        // Check if JobId has changed (indicating a new job)
         // Use string.Equals for proper null-safe comparison
-        if (!string.Equals(updatedStatus.JobID, InitialJobStatus.JobID))
+        if (!string.Equals(updatedStatus.JobId, InitialJobStatus.JobId))
         {
             return true;
         }
@@ -303,8 +303,8 @@
 
     private void UpdateEstimates()
     {
-        // We need both InitialJobStatus and CurrentJobStatus with TimeStamp to calculate
-        if (InitialJobStatus?.TimeStamp == null || CurrentJobStatus?.TimeStamp == null)
+        // We need both InitialJobStatus and CurrentJobStatus with Timestamp to calculate
+        if (InitialJobStatus?.Timestamp == null || CurrentJobStatus?.Timestamp == null)
         {
             EstimatedTimeRemaining = null;
             EstimatedCompletionTime = null;
@@ -312,7 +312,7 @@
         }
 
         // Calculate elapsed time
-        TimeSpan elapsedTime = CurrentJobStatus.TimeStamp.Value - InitialJobStatus.TimeStamp.Value;
+        TimeSpan elapsedTime = CurrentJobStatus.Timestamp.Value - InitialJobStatus.Timestamp.Value;
         
         // Validate that elapsed time is not negative (could happen due to clock skew or out-of-order messages)
         if (elapsedTime.TotalSeconds <= 0)
@@ -342,7 +342,7 @@
         EstimatedTimeRemaining = TimeSpan.FromSeconds(estimatedRemainingSeconds);
         
         // Calculate estimated completion time based on CurrentJobStatus timestamp for consistency
-        EstimatedCompletionTime = CurrentJobStatus.TimeStamp.Value.Add(EstimatedTimeRemaining.Value);
+        EstimatedCompletionTime = CurrentJobStatus.Timestamp.Value.Add(EstimatedTimeRemaining.Value);
     }
 
     private string FormatTimeSpan(TimeSpan timeSpan)
