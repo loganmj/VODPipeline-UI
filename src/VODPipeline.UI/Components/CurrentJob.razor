@@ -8,35 +8,41 @@
 @inject JobService JobService
 
 <div class="current-job">
-    @if (JobStatus?.IsRunning == true)
+    @if (DisplayStatus?.IsRunning == true)
     {
         <h4>Current Job</h4>
         <div class="job-details">
             <div class="job-field">
-                <strong>File:</strong> @JobStatus.CurrentFile
+                <strong>File:</strong> @DisplayStatus.CurrentFile
             </div>
             <div class="job-field">
-                <strong>Stage:</strong> @JobStatus.Stage
+                <strong>Stage:</strong> @DisplayStatus.Stage
             </div>
             <div class="job-field">
-                <strong>Progress:</strong> @(JobStatus.Percent ?? 0)%
+                <strong>Progress:</strong> @(DisplayStatus.Percent ?? 0)%
             </div>
-            @if (JobStatus.EstimatedTimeRemaining.HasValue)
+            @if (EstimatedTimeRemaining.HasValue)
             {
                 <div class="job-field">
-                    <strong>ETA:</strong> @FormatHelper.FormatDuration(JobStatus.EstimatedTimeRemaining.Value)
+                    <strong>ETA:</strong> @FormatHelper.FormatDuration(EstimatedTimeRemaining.Value)
                 </div>
             }
-            @if (JobStatus.ElapsedTime.HasValue)
+            @if (EstimatedCompletionTime.HasValue)
             {
                 <div class="job-field">
-                    <strong>Elapsed:</strong> @FormatHelper.FormatDuration(JobStatus.ElapsedTime.Value)
+                    <strong>Est. Completion:</strong> @EstimatedCompletionTime.Value.ToLocalTime().ToString("HH:mm")
                 </div>
             }
-            @if (JobStatus.LastUpdated.HasValue)
+            @if (DisplayStatus.ElapsedTime.HasValue)
+            {
+                <div class="job-field">
+                    <strong>Elapsed:</strong> @FormatHelper.FormatDuration(DisplayStatus.ElapsedTime.Value)
+                </div>
+            }
+            @if (DisplayStatus.LastUpdated.HasValue)
             {
                 <div class="job-field text-muted">
-                    <small>Last Updated: @JobStatus.LastUpdated.Value.ToLocalTime().ToString("HH:mm:ss zzz")</small>
+                    <small>Last Updated: @DisplayStatus.LastUpdated.Value.ToLocalTime().ToString("HH:mm:ss zzz")</small>
                 </div>
             }
         </div>
@@ -57,23 +63,30 @@
 
 @code {
     [Parameter]
-    public JobStatus? JobStatus { get; set; }
+    public JobStatus? InitialJobStatus { get; set; }
 
     [Parameter]
     public string? HubUrl { get; set; }
+
+    private JobStatus? CurrentJobStatus { get; set; }
+    private TimeSpan? EstimatedTimeRemaining { get; set; }
+    private DateTime? EstimatedCompletionTime { get; set; }
 
     private HubConnection? hubConnection;
     private bool signalRConnectionFailed = false;
     private string? previousHubUrl;
 
+    // Property for backward compatibility and to simplify the UI logic
+    private JobStatus? DisplayStatus => CurrentJobStatus ?? InitialJobStatus;
+
     protected override async Task OnInitializedAsync()
     {
         // Fetch initial job state from API if not provided via parameter
-        if (JobStatus == null)
+        if (InitialJobStatus == null)
         {
             try
             {
-                JobStatus = await JobService.GetStatusAsync();
+                InitialJobStatus = await JobService.GetStatusAsync();
             }
             catch (Exception ex)
             {
@@ -91,7 +104,7 @@
     protected override async Task OnParametersSetAsync()
     {
         // Handle HubUrl changes
-        // Note: JobStatus parameter updates from parent will be overridden by SignalR events
+        // Note: InitialJobStatus parameter updates from parent will be overridden by SignalR events
         // when the connection is active, as SignalR provides the authoritative real-time state.
         if (HubUrl != previousHubUrl)
         {
@@ -225,7 +238,35 @@
         {
             await InvokeAsync(() =>
             {
-                JobStatus = updatedStatus;
+                if (updatedStatus == null)
+                {
+                    CurrentJobStatus = null;
+                    EstimatedTimeRemaining = null;
+                    EstimatedCompletionTime = null;
+                    StateHasChanged();
+                    return;
+                }
+
+                // Check if this is a new job (different JobID or FileName)
+                bool isNewJob = IsNewJob(updatedStatus);
+                
+                if (isNewJob)
+                {
+                    // New job detected - update InitialJobStatus and clear CurrentJobStatus
+                    InitialJobStatus = updatedStatus;
+                    CurrentJobStatus = null;
+                    EstimatedTimeRemaining = null;
+                    EstimatedCompletionTime = null;
+                }
+                else
+                {
+                    // Update CurrentJobStatus
+                    CurrentJobStatus = updatedStatus;
+                    
+                    // Calculate estimated time remaining and completion time
+                    UpdateEstimates();
+                }
+                
                 StateHasChanged();
             });
         }
@@ -233,6 +274,75 @@
         {
             Logger.LogError(ex, "Error handling {EventName} SignalR event.", eventName);
         }
+    }
+
+    private bool IsNewJob(JobStatus updatedStatus)
+    {
+        // If we don't have an initial status yet, this is the first job
+        if (InitialJobStatus == null)
+        {
+            return true;
+        }
+
+        // Check if JobId has changed (indicating a new job)
+        // Use string.Equals for proper null-safe comparison
+        if (!string.Equals(updatedStatus.JobId, InitialJobStatus.JobId))
+        {
+            return true;
+        }
+
+        // Check if FileName has changed (indicating a new job)
+        // Use string.Equals for proper null-safe comparison
+        if (!string.Equals(updatedStatus.FileName, InitialJobStatus.FileName))
+        {
+            return true;
+        }
+
+        return false;
+    }
+
+    private void UpdateEstimates()
+    {
+        // We need both InitialJobStatus and CurrentJobStatus with Timestamp to calculate
+        if (InitialJobStatus?.Timestamp == null || CurrentJobStatus?.Timestamp == null)
+        {
+            EstimatedTimeRemaining = null;
+            EstimatedCompletionTime = null;
+            return;
+        }
+
+        // Calculate elapsed time
+        TimeSpan elapsedTime = CurrentJobStatus.Timestamp.Value - InitialJobStatus.Timestamp.Value;
+        
+        // Validate that elapsed time is not negative (could happen due to clock skew or out-of-order messages)
+        if (elapsedTime.TotalSeconds <= 0)
+        {
+            EstimatedTimeRemaining = null;
+            EstimatedCompletionTime = null;
+            return;
+        }
+        
+        // Get current percent complete
+        int currentPercent = CurrentJobStatus.Percent ?? 0;
+        
+        // Can't calculate if no progress has been made
+        if (currentPercent <= 0)
+        {
+            EstimatedTimeRemaining = null;
+            EstimatedCompletionTime = null;
+            return;
+        }
+
+        // Calculate remaining percent
+        int remainingPercent = 100 - currentPercent;
+        
+        // Calculate estimated time remaining
+        // Formula: elapsed * (remaining / completed)
+        double estimatedRemainingSeconds = elapsedTime.TotalSeconds * ((double)remainingPercent / currentPercent);
+        EstimatedTimeRemaining = TimeSpan.FromSeconds(estimatedRemainingSeconds);
+        
+        // Calculate estimated completion time based on CurrentJobStatus timestamp for consistency
+        EstimatedCompletionTime = CurrentJobStatus.Timestamp.Value.Add(EstimatedTimeRemaining.Value);
     }
 
     private string FormatTimeSpan(TimeSpan timeSpan)
