@@ -216,82 +216,22 @@
             // Subscribe to individual component health events
             hubConnection.On<ComponentHealth>("functionHeartbeat", async (componentHealth) =>
             {
-                try
-                {
-                    await InvokeAsync(() =>
-                    {
-                        if (HealthStatus != null)
-                        {
-                            HealthStatus.Function = componentHealth;
-                            HealthStatus.LastUpdated = DateTime.UtcNow;
-                            StateHasChanged();
-                        }
-                    });
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex, "Error handling functionHeartbeat SignalR event.");
-                }
+                await HandleComponentHealthUpdate(componentHealth, "Function", "functionHeartbeat");
             });
 
             hubConnection.On<ComponentHealth>("apiHeartbeat", async (componentHealth) =>
             {
-                try
-                {
-                    await InvokeAsync(() =>
-                    {
-                        if (HealthStatus != null)
-                        {
-                            HealthStatus.API = componentHealth;
-                            HealthStatus.LastUpdated = DateTime.UtcNow;
-                            StateHasChanged();
-                        }
-                    });
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex, "Error handling apiHeartbeat SignalR event.");
-                }
+                await HandleComponentHealthUpdate(componentHealth, "API", "apiHeartbeat");
             });
 
             hubConnection.On<ComponentHealth>("dbStatusChanged", async (componentHealth) =>
             {
-                try
-                {
-                    await InvokeAsync(() =>
-                    {
-                        if (HealthStatus != null)
-                        {
-                            HealthStatus.Database = componentHealth;
-                            HealthStatus.LastUpdated = DateTime.UtcNow;
-                            StateHasChanged();
-                        }
-                    });
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex, "Error handling dbStatusChanged SignalR event.");
-                }
+                await HandleComponentHealthUpdate(componentHealth, "Database", "dbStatusChanged");
             });
 
             hubConnection.On<ComponentHealth>("fileShareStatusChanged", async (componentHealth) =>
             {
-                try
-                {
-                    await InvokeAsync(() =>
-                    {
-                        if (HealthStatus != null)
-                        {
-                            HealthStatus.FileShare = componentHealth;
-                            HealthStatus.LastUpdated = DateTime.UtcNow;
-                            StateHasChanged();
-                        }
-                    });
-                }
-                catch (Exception ex)
-                {
-                    Logger.LogError(ex, "Error handling fileShareStatusChanged SignalR event.");
-                }
+                await HandleComponentHealthUpdate(componentHealth, "FileShare", "fileShareStatusChanged");
             });
 
             await hubConnection.StartAsync();
@@ -316,6 +256,40 @@
             {
                 hubConnection = null;
             }
+        }
+    }
+
+    private async Task HandleComponentHealthUpdate(ComponentHealth componentHealth, string componentName, string eventName)
+    {
+        try
+        {
+            await InvokeAsync(() =>
+            {
+                if (HealthStatus != null)
+                {
+                    switch (componentName)
+                    {
+                        case "Function":
+                            HealthStatus.Function = componentHealth;
+                            break;
+                        case "API":
+                            HealthStatus.API = componentHealth;
+                            break;
+                        case "Database":
+                            HealthStatus.Database = componentHealth;
+                            break;
+                        case "FileShare":
+                            HealthStatus.FileShare = componentHealth;
+                            break;
+                    }
+                    HealthStatus.LastUpdated = DateTime.UtcNow;
+                    StateHasChanged();
+                }
+            });
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error handling {EventName} SignalR event.", eventName);
         }
     }
 
