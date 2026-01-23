@@ -9,6 +9,7 @@ builder.Services.AddHttpClient<VODAPIClient>(client =>
 {
     client.BaseAddress = new Uri("http://placeholder-uri.local:1234/");
 });
+builder.Services.AddSingleton<SignalRConnectionService>();
 
 var app = builder.Build();
 
