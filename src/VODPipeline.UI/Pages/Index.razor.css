@@ -1,7 +1,2 @@
-.section-spacing {
-    margin-top: 2rem;
-}
+/* Styles moved to DashboardPage.razor.css */
 
-.error-message p {
-    margin: 0;
-}

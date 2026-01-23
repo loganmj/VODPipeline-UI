@@ -1,47 +1,5 @@
 ﻿@page "/"
-@using VODPipeline.UI.Data
-@using VODPipeline.UI.Services
-@inject JobService JobService
-@inject ConfigService ConfigService
-@inject IConfiguration Configuration
 
 <h3>Pipeline Dashboard</h3>
 
-@if (errorMessage != null)
-{
-    <div class="error-message">
-        <p>⚠️ Error loading dashboard: @errorMessage</p>
-    </div>
-}
-else if (status == null)
-{
-    <p>Loading...</p>
-}
-else
-{
-    <CurrentJob JobStatus="@status" HubUrl="@signalRHubUrl" />
-    <div class="section-spacing">
-        <ConfigSummary HubUrl="@signalRHubUrl" />
-    </div>
-}
-
-<RecentJobs MaxJobs="10" HubUrl="@signalRHubUrl" />
-
-@code {
-    private JobStatus? status;
-    private string? signalRHubUrl;
-    private string? errorMessage;
-
-    protected override async Task OnInitializedAsync()
-    {
-        try
-        {
-            status = await JobService.GetStatusAsync();
-            signalRHubUrl = Configuration["SignalR:HubUrl"];
-        }
-        catch (Exception ex)
-        {
-            errorMessage = ex.Message;
-        }
-    }
-}
+<DashboardPage />

@@ -1,0 +1,78 @@
+@using VODPipeline.UI.Data
+@using VODPipeline.UI.Services
+@inject JobService JobService
+@inject HealthService HealthService
+@inject ConfigService ConfigService
+@inject IConfiguration Configuration
+@inject ILogger<DashboardPage> Logger
+
+<div class="dashboard-page">
+    @if (errorMessage != null)
+    {
+        <div class="error-message">
+            <p>⚠️ Error loading dashboard: @errorMessage</p>
+        </div>
+    }
+    else if (isLoading)
+    {
+        <div class="loading-message">
+            <p>Loading dashboard...</p>
+        </div>
+    }
+    else
+    {
+        <div class="dashboard-section">
+            <CurrentJob JobStatus="@jobStatus" HubUrl="@signalRHubUrl" />
+        </div>
+
+        <div class="dashboard-section">
+            <SystemHealth HealthStatus="@healthStatus" HubUrl="@signalRHubUrl" />
+        </div>
+
+        <div class="dashboard-section">
+            <RecentJobs MaxJobs="10" HubUrl="@signalRHubUrl" />
+        </div>
+
+        <div class="dashboard-section">
+            <ConfigSummary Config="@config" HubUrl="@signalRHubUrl" />
+        </div>
+    }
+</div>
+
+@code {
+    private JobStatus? jobStatus;
+    private SystemHealthStatus? healthStatus;
+    private PipelineConfig? config;
+    private string? signalRHubUrl;
+    private string? errorMessage;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Load initial data from all services
+            signalRHubUrl = Configuration["SignalR:HubUrl"];
+            
+            // Load data in parallel for better performance
+            var jobStatusTask = JobService.GetStatusAsync();
+            var healthStatusTask = HealthService.GetHealthAsync();
+            var configTask = ConfigService.GetConfigAsync();
+
+            await Task.WhenAll(jobStatusTask, healthStatusTask, configTask);
+
+            jobStatus = await jobStatusTask;
+            healthStatus = await healthStatusTask;
+            config = await configTask;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading dashboard data");
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}
