@@ -205,6 +205,23 @@
                 }
             });
 
+            // Listen for job failed events
+            hubConnection.On<JobHistoryItem>("jobFailed", async (_) =>
+            {
+                try
+                {
+                    await InvokeAsync(async () =>
+                    {
+                        // Reload the recent jobs list when a job fails
+                        await LoadRecentJobs();
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error handling jobFailed SignalR event.");
+                }
+            });
+
             await hubConnection.StartAsync();
         }
         catch (Exception ex)
