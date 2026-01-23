@@ -21,6 +21,11 @@ namespace VODPipeline.UI.Services
             return await _http.GetFromJsonAsync<PipelineConfig>("api/config");
         }
 
+        public async Task<SystemHealthStatus?> GetHealthAsync()
+        {
+            return await _http.GetFromJsonAsync<SystemHealthStatus>("api/health");
+        }
+
         // Add more endpoints as needed
     }
 
