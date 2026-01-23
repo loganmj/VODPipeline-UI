@@ -30,8 +30,11 @@ namespace VODPipeline.UI.Services
 
             return await _http.GetFromJsonAsync<List<JobHistoryItem>>($"api/jobs/recent?count={count}");
         }
-
-        // Add more endpoints as needed
+      
+        public async Task<SystemHealthStatus?> GetHealthAsync()
+        {
+            return await _http.GetFromJsonAsync<SystemHealthStatus>("api/health");
+        }
     }
 
 }
