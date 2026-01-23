@@ -225,6 +225,7 @@
             await InvokeAsync(() =>
             {
                 JobStatus = updatedStatus;
+                StateHasChanged();
             });
         }
         catch (Exception ex)
