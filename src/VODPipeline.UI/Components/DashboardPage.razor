@@ -7,13 +7,7 @@
 @inject ILogger<DashboardPage> Logger
 
 <div class="dashboard-page">
-    @if (errorMessage != null)
-    {
-        <div class="error-message">
-            <p>⚠️ Error loading dashboard: @errorMessage</p>
-        </div>
-    }
-    else if (isLoading)
+    @if (isLoading)
     {
         <div class="loading-message">
             <p>Loading dashboard...</p>
@@ -44,35 +38,57 @@
     private SystemHealthStatus? healthStatus;
     private PipelineConfig? config;
     private string? signalRHubUrl;
-    private string? errorMessage;
     private bool isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
+        // Load initial data from all services
+        signalRHubUrl = Configuration["SignalR:HubUrl"];
+        
+        // Load data in parallel for better performance
+        // Each service call is wrapped to allow partial data loading
+        var jobStatusTask = LoadJobStatusAsync();
+        var healthStatusTask = LoadHealthStatusAsync();
+        var configTask = LoadConfigAsync();
+
+        await Task.WhenAll(jobStatusTask, healthStatusTask, configTask);
+
+        isLoading = false;
+    }
+
+    private async Task LoadJobStatusAsync()
+    {
         try
         {
-            // Load initial data from all services
-            signalRHubUrl = Configuration["SignalR:HubUrl"];
-            
-            // Load data in parallel for better performance
-            var jobStatusTask = JobService.GetStatusAsync();
-            var healthStatusTask = HealthService.GetHealthAsync();
-            var configTask = ConfigService.GetConfigAsync();
-
-            await Task.WhenAll(jobStatusTask, healthStatusTask, configTask);
-
-            jobStatus = await jobStatusTask;
-            healthStatus = await healthStatusTask;
-            config = await configTask;
+            jobStatus = await JobService.GetStatusAsync();
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error loading dashboard data");
-            errorMessage = ex.Message;
+            Logger.LogError(ex, "Error loading job status");
         }
-        finally
+    }
+
+    private async Task LoadHealthStatusAsync()
+    {
+        try
         {
-            isLoading = false;
+            healthStatus = await HealthService.GetHealthAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading health status");
+        }
+    }
+
+    private async Task LoadConfigAsync()
+    {
+        try
+        {
+            config = await ConfigService.GetConfigAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading configuration");
         }
     }
 }
