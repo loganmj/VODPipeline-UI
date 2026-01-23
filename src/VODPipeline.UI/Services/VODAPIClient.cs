@@ -21,6 +21,11 @@ namespace VODPipeline.UI.Services
             return await _http.GetFromJsonAsync<PipelineConfig>("api/config");
         }
 
+        public async Task<List<JobHistoryItem>?> GetRecentJobsAsync(int count = 10)
+        {
+            return await _http.GetFromJsonAsync<List<JobHistoryItem>>($"api/jobs/recent?count={count}");
+        }
+
         // Add more endpoints as needed
     }
 
