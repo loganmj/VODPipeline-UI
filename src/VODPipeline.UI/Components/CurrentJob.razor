@@ -285,15 +285,15 @@
         }
 
         // Check if JobID has changed (indicating a new job)
-        if (!string.IsNullOrEmpty(updatedStatus.JobID) && 
-            updatedStatus.JobID != InitialJobStatus.JobID)
+        // Use string.Equals for proper null-safe comparison
+        if (!string.Equals(updatedStatus.JobID, InitialJobStatus.JobID))
         {
             return true;
         }
 
         // Check if FileName has changed (indicating a new job)
-        if (!string.IsNullOrEmpty(updatedStatus.FileName) && 
-            updatedStatus.FileName != InitialJobStatus.FileName)
+        // Use string.Equals for proper null-safe comparison
+        if (!string.Equals(updatedStatus.FileName, InitialJobStatus.FileName))
         {
             return true;
         }
@@ -314,11 +314,19 @@
         // Calculate elapsed time
         TimeSpan elapsedTime = CurrentJobStatus.TimeStamp.Value - InitialJobStatus.TimeStamp.Value;
         
+        // Validate that elapsed time is not negative (could happen due to clock skew or out-of-order messages)
+        if (elapsedTime.TotalSeconds <= 0)
+        {
+            EstimatedTimeRemaining = null;
+            EstimatedCompletionTime = null;
+            return;
+        }
+        
         // Get current percent complete
         int currentPercent = CurrentJobStatus.Percent ?? 0;
         
         // Can't calculate if no progress has been made
-        if (currentPercent <= 0 || elapsedTime.TotalSeconds <= 0)
+        if (currentPercent <= 0)
         {
             EstimatedTimeRemaining = null;
             EstimatedCompletionTime = null;
@@ -333,8 +341,8 @@
         double estimatedRemainingSeconds = elapsedTime.TotalSeconds * ((double)remainingPercent / currentPercent);
         EstimatedTimeRemaining = TimeSpan.FromSeconds(estimatedRemainingSeconds);
         
-        // Calculate estimated completion time (current time + estimated remaining)
-        EstimatedCompletionTime = DateTime.UtcNow.Add(EstimatedTimeRemaining.Value);
+        // Calculate estimated completion time based on CurrentJobStatus timestamp for consistency
+        EstimatedCompletionTime = CurrentJobStatus.TimeStamp.Value.Add(EstimatedTimeRemaining.Value);
     }
 
     private string FormatTimeSpan(TimeSpan timeSpan)
