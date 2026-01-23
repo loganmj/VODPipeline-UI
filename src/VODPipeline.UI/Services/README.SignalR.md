@@ -104,7 +104,7 @@ public async ValueTask DisposeAsync()
 
 ## Features
 
-- **Automatic Reconnection**: Uses SignalR's built-in automatic reconnection with exponential backoff
+- **Automatic Reconnection**: Uses SignalR's built-in automatic reconnection with the default retry schedule (0, 2, 10, and 30 seconds)
 - **Connection State Tracking**: Provides `IsConnected` and `ConnectionState` properties
 - **Event Lifecycle Hooks**: Exposes `Reconnecting`, `Reconnected`, `Closed`, and `Connected` events
 - **Thread-Safe**: Uses semaphore locks to prevent concurrent connection attempts
