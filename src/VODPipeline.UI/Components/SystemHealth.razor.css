@@ -68,6 +68,12 @@
     font-size: 0.95rem;
 }
 
+.status-text {
+    font-weight: normal;
+    font-size: 0.85rem;
+    color: #666;
+}
+
 .health-details small {
     color: #666;
     font-size: 0.85rem;

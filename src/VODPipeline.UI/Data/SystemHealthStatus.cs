@@ -1,6 +1,6 @@
 namespace VODPipeline.UI.Data
 {
-    public class SystemHealthStatus
+    public class SystemHealthStatus : ISystemHealthStatus
     {
         public ComponentHealth Function { get; set; } = new ComponentHealth();
         public ComponentHealth API { get; set; } = new ComponentHealth();
@@ -9,7 +9,7 @@ namespace VODPipeline.UI.Data
         public DateTime? LastUpdated { get; set; }
     }
 
-    public class ComponentHealth
+    public class ComponentHealth : IComponentHealth
     {
         public HealthStatus Status { get; set; } = HealthStatus.Unknown;
         public DateTime? LastHeartbeat { get; set; }
