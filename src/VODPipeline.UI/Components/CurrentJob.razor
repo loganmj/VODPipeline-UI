@@ -185,8 +185,15 @@
             {
                 Logger.LogError(ex, "Error while stopping SignalR hub connection.");
             }
-            
-            await connection.DisposeAsync();
+
+            try
+            {
+                await connection.DisposeAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error while disposing SignalR hub connection.");
+            }
         }
     }
 
