@@ -2,8 +2,8 @@ namespace VODPipeline.UI.Data
 {
     public interface IComponentHealth
     {
-        public HealthStatus Status { get; }
-        public DateTime? LastHeartbeat { get; }
-        public string? Message { get; }
+        HealthStatus Status { get; }
+        DateTime? LastHeartbeat { get; }
+        string? Message { get; }
     }
 }
