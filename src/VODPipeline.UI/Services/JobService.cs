@@ -36,14 +36,14 @@ namespace VODPipeline.UI.Services
             return await _http.GetFromJsonAsync<JobDetailInfo>($"api/jobs/{id}");
         }
 
-        public async Task<List<JobEvent>?> GetJobEventsAsync(string jobId)
+        public async Task<List<JobEvent>?> GetJobEventsAsync(string id)
         {
-            if (string.IsNullOrEmpty(jobId))
+            if (string.IsNullOrEmpty(id))
             {
-                throw new ArgumentException("Job ID cannot be null or empty", nameof(jobId));
+                throw new ArgumentException("Job ID cannot be null or empty", nameof(id));
             }
 
-            return await _http.GetFromJsonAsync<List<JobEvent>>($"api/jobs/{jobId}/events");
+            return await _http.GetFromJsonAsync<List<JobEvent>>($"api/jobs/{id}/events");
         }
     }
 }
