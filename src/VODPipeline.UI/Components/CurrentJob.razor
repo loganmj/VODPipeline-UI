@@ -129,20 +129,21 @@
 
     private async Task CleanupSignalRConnection()
     {
-        if (hubConnection is not null)
+        var connection = hubConnection;
+        if (connection is not null)
         {
+            hubConnection = null; // Clear reference first to prevent reuse
+            
             try
             {
-                hubConnection.Remove("JobStatusUpdated");
-                await hubConnection.StopAsync();
+                await connection.StopAsync();
             }
             catch (Exception ex)
             {
                 Logger.LogError(ex, "Error while stopping SignalR hub connection.");
             }
             
-            await hubConnection.DisposeAsync();
-            hubConnection = null;
+            await connection.DisposeAsync();
         }
     }
 
