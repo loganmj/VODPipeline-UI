@@ -2,15 +2,6 @@
     margin-top: 2rem;
 }
 
-.error-message {
-    padding: 1rem;
-    background-color: #f8d7da;
-    border: 1px solid #f5c2c7;
-    border-radius: 4px;
-    color: #842029;
-    margin-bottom: 1rem;
-}
-
 .error-message p {
     margin: 0;
 }
