@@ -1,9 +1,11 @@
 @using VODPipeline.UI.Data
 @using VODPipeline.UI.Services
+@using VODPipeline.UI.Utilities
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Logging
 @implements IAsyncDisposable
 @inject VODAPIClient Api
+@inject NavigationManager NavigationManager
 @inject ILogger<RecentJobs> Logger
 
 <div class="recent-jobs">
@@ -50,12 +52,12 @@
                             <td>@job.JobId</td>
                             <td>@job.FileName</td>
                             <td>
-                                <span class="badge @GetStatusBadgeClass(job.Status)">
+                                <span class="badge @FormatHelper.GetStatusBadgeClass(job.Status)">
                                     @job.Status
                                 </span>
                             </td>
-                            <td>@FormatDuration(job.Duration)</td>
-                            <td>@FormatTimestamp(job.Timestamp)</td>
+                            <td>@FormatHelper.FormatDuration(job.Duration)</td>
+                            <td>@FormatHelper.FormatTimestamp(job.Timestamp)</td>
                         </tr>
                     }
                 </tbody>
@@ -260,9 +262,7 @@
     {
         if (!string.IsNullOrEmpty(jobId))
         {
-            // TODO: Navigate to job detail page when it's implemented
-            // For now, we'll just log it
-            Logger.LogInformation("Navigate to job detail: {JobId}", jobId);
+            NavigationManager.NavigateTo($"/job/{jobId}");
         }
     }
 
@@ -279,63 +279,6 @@
             // Page may scroll when space is pressed
             NavigateToJobDetail(jobId);
         }
-    }
-
-    private string GetStatusBadgeClass(string? status)
-    {
-        return status?.ToLower() switch
-        {
-            "completed" => "badge-success",
-            "success" => "badge-success",
-            "failed" => "badge-danger",
-            "error" => "badge-danger",
-            "running" => "badge-primary",
-            "in progress" => "badge-primary",
-            "pending" => "badge-warning",
-            "queued" => "badge-warning",
-            _ => "badge-secondary"
-        };
-    }
-
-    private string FormatDuration(TimeSpan? duration)
-    {
-        if (!duration.HasValue || duration.Value < TimeSpan.Zero)
-        {
-            return "N/A";
-        }
-
-        var timeSpan = duration.Value;
-        
-        if (timeSpan.TotalHours >= 1)
-        {
-            return $"{(int)timeSpan.TotalHours}h {timeSpan.Minutes}m {timeSpan.Seconds}s";
-        }
-        else if (timeSpan.TotalMinutes >= 1)
-        {
-            return $"{timeSpan.Minutes}m {timeSpan.Seconds}s";
-        }
-        else if (timeSpan.TotalSeconds >= 1)
-        {
-            return $"{(int)timeSpan.TotalSeconds}s";
-        }
-        else if (timeSpan.TotalMilliseconds >= 1)
-        {
-            return $"{(int)timeSpan.TotalMilliseconds}ms";
-        }
-        else
-        {
-            return "<1ms";
-        }
-    }
-
-    private string FormatTimestamp(DateTime? timestamp)
-    {
-        if (!timestamp.HasValue)
-        {
-            return "N/A";
-        }
-
-        return timestamp.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz");
     }
 
     public async ValueTask DisposeAsync()

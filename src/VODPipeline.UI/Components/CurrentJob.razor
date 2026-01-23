@@ -1,5 +1,6 @@
 @using VODPipeline.UI.Data
 @using VODPipeline.UI.Services
+@using VODPipeline.UI.Utilities
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Logging
 @implements IAsyncDisposable
@@ -23,13 +24,13 @@
             @if (JobStatus.EstimatedTimeRemaining.HasValue)
             {
                 <div class="job-field">
-                    <strong>ETA:</strong> @FormatTimeSpan(JobStatus.EstimatedTimeRemaining.Value)
+                    <strong>ETA:</strong> @FormatHelper.FormatDuration(JobStatus.EstimatedTimeRemaining.Value)
                 </div>
             }
             @if (JobStatus.ElapsedTime.HasValue)
             {
                 <div class="job-field">
-                    <strong>Elapsed:</strong> @FormatTimeSpan(JobStatus.ElapsedTime.Value)
+                    <strong>Elapsed:</strong> @FormatHelper.FormatDuration(JobStatus.ElapsedTime.Value)
                 </div>
             }
             @if (JobStatus.LastUpdated.HasValue)
