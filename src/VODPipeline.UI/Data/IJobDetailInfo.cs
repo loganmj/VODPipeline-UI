@@ -10,7 +10,7 @@ namespace VODPipeline.UI.Data
         TimeSpan? Duration { get; }
         string? CurrentStage { get; }
         int? ProgressPercent { get; }
-        List<JobStage>? Stages { get; }
+        List<IJobStage>? Stages { get; }
         int? HighlightCount { get; }
         int? SceneCount { get; }
         Dictionary<string, object>? Metadata { get; }
