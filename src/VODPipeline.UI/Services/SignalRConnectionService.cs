@@ -42,6 +42,23 @@ namespace VODPipeline.UI.Services
                     return;
                 }
 
+                // Dispose existing connection if present
+                if (_hubConnection is not null)
+                {
+                    try
+                    {
+                        await _hubConnection.DisposeAsync();
+                    }
+                    catch (Exception disposeEx)
+                    {
+                        _logger.LogWarning(disposeEx, "Error disposing existing SignalR connection before creating new one.");
+                    }
+                    finally
+                    {
+                        _hubConnection = null;
+                    }
+                }
+
                 _logger.LogInformation("Initializing SignalR connection to {HubUrl}", _hubUrl);
 
                 _hubConnection = new HubConnectionBuilder()
@@ -55,7 +72,7 @@ namespace VODPipeline.UI.Services
                     _logger.LogWarning(error, "SignalR connection lost. Attempting to reconnect...");
                     if (Reconnecting != null)
                     {
-                        await Reconnecting.Invoke(error);
+                        await InvokeEventHandlersAsync(Reconnecting, error);
                     }
                 };
 
@@ -64,16 +81,24 @@ namespace VODPipeline.UI.Services
                     _logger.LogInformation("SignalR connection re-established. Connection ID: {ConnectionId}", connectionId);
                     if (Reconnected != null)
                     {
-                        await Reconnected.Invoke(connectionId);
+                        await InvokeEventHandlersAsync(Reconnected, connectionId);
                     }
                 };
 
                 _hubConnection.Closed += async (error) =>
                 {
-                    _logger.LogError(error, "SignalR connection closed.");
+                    if (error != null)
+                    {
+                        _logger.LogError(error, "SignalR connection closed with error.");
+                    }
+                    else
+                    {
+                        _logger.LogInformation("SignalR connection closed.");
+                    }
+                    
                     if (Closed != null)
                     {
-                        await Closed.Invoke(error);
+                        await InvokeEventHandlersAsync(Closed, error);
                     }
                 };
 
@@ -82,7 +107,7 @@ namespace VODPipeline.UI.Services
 
                 if (Connected != null)
                 {
-                    await Connected.Invoke();
+                    await InvokeEventHandlersAsync(Connected);
                 }
             }
             catch (Exception ex)
@@ -201,6 +226,38 @@ namespace VODPipeline.UI.Services
             }
 
             await _hubConnection.InvokeAsync(methodName, args);
+        }
+
+        private static async Task InvokeEventHandlersAsync<T>(Func<T, Task> eventHandler, T arg)
+        {
+            foreach (var handler in eventHandler.GetInvocationList().Cast<Func<T, Task>>())
+            {
+                try
+                {
+                    await handler(arg);
+                }
+                catch
+                {
+                    // Log but don't throw - one handler shouldn't break others
+                    // The logger is not available in static context, so handlers should handle their own errors
+                }
+            }
+        }
+
+        private static async Task InvokeEventHandlersAsync(Func<Task> eventHandler)
+        {
+            foreach (var handler in eventHandler.GetInvocationList().Cast<Func<Task>>())
+            {
+                try
+                {
+                    await handler();
+                }
+                catch
+                {
+                    // Log but don't throw - one handler shouldn't break others
+                    // The logger is not available in static context, so handlers should handle their own errors
+                }
+            }
         }
 
         public async ValueTask DisposeAsync()
