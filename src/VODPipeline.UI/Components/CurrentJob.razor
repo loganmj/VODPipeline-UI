@@ -207,11 +207,11 @@
         }
         else if (timeSpan.TotalSeconds >= 1)
         {
-            return $"{timeSpan.Seconds}s";
+            return $"{(int)timeSpan.TotalSeconds}s";
         }
         else if (timeSpan.TotalMilliseconds >= 1)
         {
-            return $"{timeSpan.TotalMilliseconds:F0}ms";
+            return $"{(int)timeSpan.TotalMilliseconds}ms";
         }
         else
         {
