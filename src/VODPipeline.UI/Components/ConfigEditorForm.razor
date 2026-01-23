@@ -156,12 +156,17 @@
 
     private async Task InitializeSignalRConnection()
     {
+        if (string.IsNullOrEmpty(HubUrl))
+        {
+            return;
+        }
+
         try
         {
             signalRConnectionFailed = false;
             
             hubConnection = new HubConnectionBuilder()
-                .WithUrl(HubUrl!)
+                .WithUrl(HubUrl)
                 .WithAutomaticReconnect()
                 .Build();
 
@@ -200,7 +205,6 @@
                 {
                     await InvokeAsync(async () =>
                     {
-                        Config = updatedConfig;
                         if (!isSaving)
                         {
                             // Update form with new values from server
@@ -302,7 +306,6 @@
             if (response.IsSuccessStatusCode)
             {
                 successMessage = "Configuration saved successfully!";
-                Config = config;
                 
                 // Notify parent component of successful update
                 if (OnConfigUpdated.HasDelegate)
