@@ -104,6 +104,7 @@
                 await InvokeAsync(() =>
                 {
                     signalRConnectionFailed = true;
+                    StateHasChanged();
                 });
             };
 
@@ -112,6 +113,7 @@
                 await InvokeAsync(() =>
                 {
                     signalRConnectionFailed = false;
+                    StateHasChanged();
                 });
             };
 
@@ -120,6 +122,7 @@
                 await InvokeAsync(() =>
                 {
                     signalRConnectionFailed = true;
+                    StateHasChanged();
                 });
             };
 
@@ -130,6 +133,7 @@
                     await InvokeAsync(() =>
                     {
                         Config = updatedConfig;
+                        StateHasChanged();
                     });
                 }
                 catch (Exception ex)
