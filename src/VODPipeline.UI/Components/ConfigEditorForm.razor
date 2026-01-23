@@ -96,7 +96,7 @@
     [Parameter]
     public EventCallback OnConfigUpdated { get; set; }
 
-    private ConfigEditModel editConfig = new ConfigEditModel();
+    private readonly ConfigEditModel editConfig = new ConfigEditModel();
     private bool isSaving = false;
     private string? successMessage;
     private string? errorMessage;
@@ -109,12 +109,7 @@
         if (Config != null)
         {
             // Initialize edit model with current config values
-            editConfig.InputDirectory = Config.InputDirectory;
-            editConfig.OutputDirectory = Config.OutputDirectory;
-            editConfig.ArchiveDirectory = Config.ArchiveDirectory;
-            editConfig.EnableHighlights = Config.EnableHighlights;
-            editConfig.EnableScenes = Config.EnableScenes;
-            editConfig.SilenceThreshold = Config.SilenceThreshold;
+            UpdateEditConfigFromPipelineConfig(Config);
         }
 
         if (!string.IsNullOrEmpty(HubUrl))
@@ -129,12 +124,7 @@
         // Handle Config changes from parent
         if (Config != null && !isSaving)
         {
-            editConfig.InputDirectory = Config.InputDirectory;
-            editConfig.OutputDirectory = Config.OutputDirectory;
-            editConfig.ArchiveDirectory = Config.ArchiveDirectory;
-            editConfig.EnableHighlights = Config.EnableHighlights;
-            editConfig.EnableScenes = Config.EnableScenes;
-            editConfig.SilenceThreshold = Config.SilenceThreshold;
+            UpdateEditConfigFromPipelineConfig(Config);
         }
 
         // Handle HubUrl changes
@@ -208,12 +198,7 @@
                         if (!isSaving)
                         {
                             // Update form with new values from server
-                            editConfig.InputDirectory = updatedConfig.InputDirectory;
-                            editConfig.OutputDirectory = updatedConfig.OutputDirectory;
-                            editConfig.ArchiveDirectory = updatedConfig.ArchiveDirectory;
-                            editConfig.EnableHighlights = updatedConfig.EnableHighlights;
-                            editConfig.EnableScenes = updatedConfig.EnableScenes;
-                            editConfig.SilenceThreshold = updatedConfig.SilenceThreshold;
+                            UpdateEditConfigFromPipelineConfig(updatedConfig);
                         }
                         StateHasChanged();
                         
@@ -301,11 +286,14 @@
                 SilenceThreshold = editConfig.SilenceThreshold
             };
 
-            var response = await Api.UpdateConfigAsync(config);
+            using var response = await Api.UpdateConfigAsync(config);
             
             if (response.IsSuccessStatusCode)
             {
                 successMessage = "Configuration saved successfully!";
+                
+                // Reset isSaving before invoking callback to allow parent updates
+                isSaving = false;
                 
                 // Notify parent component of successful update
                 if (OnConfigUpdated.HasDelegate)
@@ -335,12 +323,20 @@
         await CleanupSignalRConnection();
     }
 
+    private void UpdateEditConfigFromPipelineConfig(PipelineConfig config)
+    {
+        editConfig.InputDirectory = config.InputDirectory;
+        editConfig.OutputDirectory = config.OutputDirectory;
+        editConfig.ArchiveDirectory = config.ArchiveDirectory;
+        editConfig.EnableHighlights = config.EnableHighlights;
+        editConfig.EnableScenes = config.EnableScenes;
+        editConfig.SilenceThreshold = config.SilenceThreshold;
+    }
+
     private class ConfigEditModel
     {
-        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Input Directory is required")]
         public string InputDirectory { get; set; } = "";
 
-        [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Output Directory is required")]
         public string OutputDirectory { get; set; } = "";
 
         [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Archive Directory is required")]
