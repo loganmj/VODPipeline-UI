@@ -1,4 +1,5 @@
 @using VODPipeline.UI.Data
+@using VODPipeline.UI.Utilities
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Logging
 @implements IAsyncDisposable
@@ -21,13 +22,13 @@
             @if (JobStatus.EstimatedTimeRemaining.HasValue)
             {
                 <div class="job-field">
-                    <strong>ETA:</strong> @FormatTimeSpan(JobStatus.EstimatedTimeRemaining.Value)
+                    <strong>ETA:</strong> @FormatHelper.FormatDuration(JobStatus.EstimatedTimeRemaining.Value)
                 </div>
             }
             @if (JobStatus.ElapsedTime.HasValue)
             {
                 <div class="job-field">
-                    <strong>Elapsed:</strong> @FormatTimeSpan(JobStatus.ElapsedTime.Value)
+                    <strong>Elapsed:</strong> @FormatHelper.FormatDuration(JobStatus.ElapsedTime.Value)
                 </div>
             }
             @if (JobStatus.LastUpdated.HasValue)
@@ -194,35 +195,6 @@
             {
                 Logger.LogError(ex, "Error while disposing SignalR hub connection.");
             }
-        }
-    }
-
-    private string FormatTimeSpan(TimeSpan timeSpan)
-    {
-        if (timeSpan < TimeSpan.Zero)
-        {
-            return "N/A";
-        }
-        
-        if (timeSpan.TotalHours >= 1)
-        {
-            return $"{(int)timeSpan.TotalHours}h {timeSpan.Minutes}m {timeSpan.Seconds}s";
-        }
-        else if (timeSpan.TotalMinutes >= 1)
-        {
-            return $"{timeSpan.Minutes}m {timeSpan.Seconds}s";
-        }
-        else if (timeSpan.TotalSeconds >= 1)
-        {
-            return $"{(int)timeSpan.TotalSeconds}s";
-        }
-        else if (timeSpan.TotalMilliseconds >= 1)
-        {
-            return $"{(int)timeSpan.TotalMilliseconds}ms";
-        }
-        else
-        {
-            return "<1ms";
         }
     }
 

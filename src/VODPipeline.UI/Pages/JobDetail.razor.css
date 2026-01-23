@@ -1,0 +1,174 @@
+.job-detail-page {
+    padding: 20px;
+}
+
+.page-header {
+    margin-bottom: 20px;
+}
+
+.page-header h3 {
+    margin-top: 10px;
+}
+
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.card-header {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.card-header h4 {
+    margin: 0;
+    font-size: 1.25rem;
+}
+
+.detail-field {
+    margin-bottom: 10px;
+}
+
+.detail-field strong {
+    display: inline-block;
+    min-width: 120px;
+}
+
+.progress-label {
+    margin-bottom: 5px;
+}
+
+/* Stage styles */
+.stages-container {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.stage-item {
+    background-color: #f8f9fa;
+}
+
+.stage-item.stage-completed {
+    background-color: #d4edda;
+    border-color: #28a745 !important;
+}
+
+.stage-item.stage-running {
+    background-color: #d1ecf1;
+    border-color: #0dcaf0 !important;
+}
+
+.stage-item.stage-failed {
+    background-color: #f8d7da;
+    border-color: #dc3545 !important;
+}
+
+.stage-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.stage-header h5 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+.stage-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+/* Statistics styles */
+.stat-item {
+    text-align: center;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.stat-label {
+    font-weight: bold;
+    color: #6c757d;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #007bff;
+}
+
+/* Timeline styles */
+.timeline {
+    position: relative;
+}
+
+.timeline-item {
+    padding-left: 20px;
+}
+
+.timeline-time {
+    margin-bottom: 5px;
+}
+
+.timeline-content {
+    padding-left: 15px !important;
+    border-left-color: #007bff !important;
+}
+
+.timeline-event-type {
+    margin-bottom: 5px;
+}
+
+.timeline-message {
+    color: #6c757d;
+    margin-top: 5px;
+}
+
+/* Badge styles */
+.badge-success {
+    background-color: #28a745;
+    color: white;
+}
+
+.badge-danger {
+    background-color: #dc3545;
+    color: white;
+}
+
+.badge-primary {
+    background-color: #007bff;
+    color: white;
+}
+
+.badge-warning {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.badge-info {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.badge-secondary {
+    background-color: #6c757d;
+    color: white;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .stage-details {
+        flex-direction: column;
+    }
+    
+    .detail-field strong {
+        min-width: auto;
+        display: block;
+    }
+}
