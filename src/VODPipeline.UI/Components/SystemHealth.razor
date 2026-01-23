@@ -116,6 +116,12 @@
 </div>
 
 @code {
+    // Component name constants for event handling
+    private const string ComponentNameFunction = "Function";
+    private const string ComponentNameAPI = "API";
+    private const string ComponentNameDatabase = "Database";
+    private const string ComponentNameFileShare = "FileShare";
+
     [Parameter]
     public SystemHealthStatus? HealthStatus { get; set; }
 
@@ -216,22 +222,22 @@
             // Subscribe to individual component health events
             hubConnection.On<ComponentHealth>("functionHeartbeat", async (componentHealth) =>
             {
-                await HandleComponentHealthUpdate(componentHealth, "Function", "functionHeartbeat");
+                await HandleComponentHealthUpdate(componentHealth, ComponentNameFunction, "functionHeartbeat");
             });
 
             hubConnection.On<ComponentHealth>("apiHeartbeat", async (componentHealth) =>
             {
-                await HandleComponentHealthUpdate(componentHealth, "API", "apiHeartbeat");
+                await HandleComponentHealthUpdate(componentHealth, ComponentNameAPI, "apiHeartbeat");
             });
 
             hubConnection.On<ComponentHealth>("dbStatusChanged", async (componentHealth) =>
             {
-                await HandleComponentHealthUpdate(componentHealth, "Database", "dbStatusChanged");
+                await HandleComponentHealthUpdate(componentHealth, ComponentNameDatabase, "dbStatusChanged");
             });
 
             hubConnection.On<ComponentHealth>("fileShareStatusChanged", async (componentHealth) =>
             {
-                await HandleComponentHealthUpdate(componentHealth, "FileShare", "fileShareStatusChanged");
+                await HandleComponentHealthUpdate(componentHealth, ComponentNameFileShare, "fileShareStatusChanged");
             });
 
             await hubConnection.StartAsync();
@@ -269,16 +275,16 @@
                 {
                     switch (componentName)
                     {
-                        case "Function":
+                        case ComponentNameFunction:
                             HealthStatus.Function = componentHealth;
                             break;
-                        case "API":
+                        case ComponentNameAPI:
                             HealthStatus.API = componentHealth;
                             break;
-                        case "Database":
+                        case ComponentNameDatabase:
                             HealthStatus.Database = componentHealth;
                             break;
-                        case "FileShare":
+                        case ComponentNameFileShare:
                             HealthStatus.FileShare = componentHealth;
                             break;
                         default:
