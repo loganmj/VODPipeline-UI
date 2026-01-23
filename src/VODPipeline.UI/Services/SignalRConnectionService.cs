@@ -25,7 +25,7 @@ namespace VODPipeline.UI.Services
             
             if (string.IsNullOrEmpty(hubUrl))
             {
-                throw new InvalidOperationException("SignalR:HubUrl is not configured in appsettings.json");
+                throw new InvalidOperationException("Missing required 'SignalR:HubUrl' configuration value.");
             }
 
             _hubUrl = hubUrl;
