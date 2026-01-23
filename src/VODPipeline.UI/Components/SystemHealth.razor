@@ -159,7 +159,6 @@
                 await InvokeAsync(() =>
                 {
                     signalRConnectionFailed = true;
-                    StateHasChanged();
                 });
             };
 
@@ -168,7 +167,6 @@
                 await InvokeAsync(() =>
                 {
                     signalRConnectionFailed = false;
-                    StateHasChanged();
                 });
             };
 
@@ -177,7 +175,6 @@
                 await InvokeAsync(() =>
                 {
                     signalRConnectionFailed = true;
-                    StateHasChanged();
                 });
             };
 
@@ -188,7 +185,6 @@
                     await InvokeAsync(() =>
                     {
                         HealthStatus = updatedStatus;
-                        StateHasChanged();
                     });
                 }
                 catch (Exception ex)
