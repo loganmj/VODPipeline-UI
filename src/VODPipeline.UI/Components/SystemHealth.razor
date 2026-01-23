@@ -1,8 +1,10 @@
 @using VODPipeline.UI.Data
+@using VODPipeline.UI.Services
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Logging
 @implements IAsyncDisposable
 @inject ILogger<SystemHealth> Logger
+@inject VODAPIClient Api
 
 <div class="system-health">
     <h4>System Health</h4>
@@ -126,6 +128,16 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // Load initial health data from API
+        try
+        {
+            HealthStatus = await Api.GetHealthAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Failed to load initial health data from API.");
+        }
+
         if (!string.IsNullOrEmpty(HubUrl))
         {
             await InitializeSignalRConnection();
@@ -198,6 +210,87 @@
                 catch (Exception ex)
                 {
                     Logger.LogError(ex, "Error handling SystemHealthUpdated SignalR event.");
+                }
+            });
+
+            // Subscribe to individual component health events
+            hubConnection.On<ComponentHealth>("functionHeartbeat", async (componentHealth) =>
+            {
+                try
+                {
+                    await InvokeAsync(() =>
+                    {
+                        if (HealthStatus != null)
+                        {
+                            HealthStatus.Function = componentHealth;
+                            HealthStatus.LastUpdated = DateTime.UtcNow;
+                            StateHasChanged();
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error handling functionHeartbeat SignalR event.");
+                }
+            });
+
+            hubConnection.On<ComponentHealth>("apiHeartbeat", async (componentHealth) =>
+            {
+                try
+                {
+                    await InvokeAsync(() =>
+                    {
+                        if (HealthStatus != null)
+                        {
+                            HealthStatus.API = componentHealth;
+                            HealthStatus.LastUpdated = DateTime.UtcNow;
+                            StateHasChanged();
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error handling apiHeartbeat SignalR event.");
+                }
+            });
+
+            hubConnection.On<ComponentHealth>("dbStatusChanged", async (componentHealth) =>
+            {
+                try
+                {
+                    await InvokeAsync(() =>
+                    {
+                        if (HealthStatus != null)
+                        {
+                            HealthStatus.Database = componentHealth;
+                            HealthStatus.LastUpdated = DateTime.UtcNow;
+                            StateHasChanged();
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error handling dbStatusChanged SignalR event.");
+                }
+            });
+
+            hubConnection.On<ComponentHealth>("fileShareStatusChanged", async (componentHealth) =>
+            {
+                try
+                {
+                    await InvokeAsync(() =>
+                    {
+                        if (HealthStatus != null)
+                        {
+                            HealthStatus.FileShare = componentHealth;
+                            HealthStatus.LastUpdated = DateTime.UtcNow;
+                            StateHasChanged();
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error handling fileShareStatusChanged SignalR event.");
                 }
             });
 
