@@ -7,5 +7,7 @@
         public string? Stage { get; }
         public int? Percent { get; }
         public DateTime? LastUpdated { get; }
+        public TimeSpan? EstimatedTimeRemaining { get; }
+        public TimeSpan? ElapsedTime { get; }
     }
 }
