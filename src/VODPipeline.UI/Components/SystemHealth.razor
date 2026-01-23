@@ -4,7 +4,7 @@
 @using Microsoft.Extensions.Logging
 @implements IAsyncDisposable
 @inject ILogger<SystemHealth> Logger
-@inject VODAPIClient Api
+@inject HealthService HealthService
 
 <div class="system-health">
     <h4>System Health</h4>
@@ -139,7 +139,7 @@
         {
             try
             {
-                HealthStatus = await Api.GetHealthAsync();
+                HealthStatus = await HealthService.GetHealthAsync();
             }
             catch (Exception ex)
             {

@@ -3,7 +3,7 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Logging
 @implements IAsyncDisposable
-@inject VODAPIClient Api
+@inject ConfigService ConfigService
 @inject ILogger<ConfigEditorForm> Logger
 
 <div class="config-editor-form">
@@ -287,7 +287,7 @@
                 SilenceThreshold = editConfig.SilenceThreshold
             };
 
-            using var response = await Api.UpdateConfigAsync(config);
+            using var response = await ConfigService.SaveConfigAsync(config);
             
             if (response.IsSuccessStatusCode)
             {
