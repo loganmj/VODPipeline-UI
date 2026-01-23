@@ -36,13 +36,14 @@ namespace VODPipeline.UI.Services
             await _connectionLock.WaitAsync();
             try
             {
+                // If connection is active or connecting, don't start a new one
                 if (_hubConnection is not null && _hubConnection.State != HubConnectionState.Disconnected)
                 {
                     _logger.LogWarning("SignalR connection already started or in progress. Current state: {State}", _hubConnection.State);
                     return;
                 }
 
-                // Dispose existing connection if present
+                // Dispose existing disconnected connection if present before creating a new one
                 if (_hubConnection is not null)
                 {
                     try
