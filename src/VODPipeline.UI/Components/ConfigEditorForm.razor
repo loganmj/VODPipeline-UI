@@ -273,6 +273,7 @@
         isSaving = true;
         successMessage = null;
         errorMessage = null;
+        bool saveSucceeded = false;
 
         try
         {
@@ -291,15 +292,7 @@
             if (response.IsSuccessStatusCode)
             {
                 successMessage = "Configuration saved successfully!";
-                
-                // Reset isSaving before invoking callback to allow parent updates
-                isSaving = false;
-                
-                // Notify parent component of successful update
-                if (OnConfigUpdated.HasDelegate)
-                {
-                    await OnConfigUpdated.InvokeAsync();
-                }
+                saveSucceeded = true;
             }
             else
             {
@@ -315,6 +308,12 @@
         finally
         {
             isSaving = false;
+        }
+
+        // Notify parent after isSaving is reset to allow OnParametersSetAsync to process updates
+        if (saveSucceeded && OnConfigUpdated.HasDelegate)
+        {
+            await OnConfigUpdated.InvokeAsync();
         }
     }
 
