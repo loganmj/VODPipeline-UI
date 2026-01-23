@@ -1,0 +1,345 @@
+@using VODPipeline.UI.Data
+@using VODPipeline.UI.Services
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Logging
+@implements IAsyncDisposable
+@inject VODAPIClient Api
+@inject ILogger<RecentJobs> Logger
+
+<div class="recent-jobs">
+    <h4>Recent Jobs</h4>
+    
+    @if (isLoading)
+    {
+        <p>Loading recent jobs...</p>
+    }
+    else if (hasLoadError)
+    {
+        <div class="error-message">
+            <p>Unable to load jobs - please try again</p>
+        </div>
+    }
+    else if (jobs == null || !jobs.Any())
+    {
+        <div class="no-jobs">
+            <p>No recent jobs found</p>
+        </div>
+    }
+    else
+    {
+        <div class="jobs-table-container">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Job ID</th>
+                        <th>File Name</th>
+                        <th>Status</th>
+                        <th>Duration</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var job in jobs)
+                    {
+                        <tr class="job-row"
+                            role="button"
+                            tabindex="0"
+                            style="cursor: pointer;"
+                            @onclick="@(() => NavigateToJobDetail(job.JobId))"
+                            @onkeydown="@(e => HandleKeyDown(e, job.JobId))">
+                            <td>@job.JobId</td>
+                            <td>@job.FileName</td>
+                            <td>
+                                <span class="badge @GetStatusBadgeClass(job.Status)">
+                                    @job.Status
+                                </span>
+                            </td>
+                            <td>@FormatDuration(job.Duration)</td>
+                            <td>@FormatTimestamp(job.Timestamp)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    
+    @if (signalRConnectionFailed)
+    {
+        <div class="connection-warning">
+            <small>⚠️ Live updates unavailable - displaying cached data</small>
+        </div>
+    }
+</div>
+
+@code {
+    private int _maxJobs = 10;
+
+    [Parameter]
+    public int MaxJobs
+    {
+        get => _maxJobs;
+        set => _maxJobs = value > 0 ? value : 10;
+    }
+
+    [Parameter]
+    public string? HubUrl { get; set; }
+
+    private List<JobHistoryItem>? jobs;
+    private bool isLoading = true;
+    private bool hasLoadError = false;
+    private HubConnection? hubConnection;
+    private bool signalRConnectionFailed = false;
+    private string? previousHubUrl;
+    private bool isRefreshing = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadRecentJobs();
+        
+        if (!string.IsNullOrEmpty(HubUrl))
+        {
+            await InitializeSignalRConnection();
+            previousHubUrl = HubUrl;
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Handle HubUrl changes
+        if (HubUrl != previousHubUrl)
+        {
+            if (hubConnection is not null)
+            {
+                await CleanupSignalRConnection();
+            }
+
+            if (!string.IsNullOrEmpty(HubUrl))
+            {
+                await InitializeSignalRConnection();
+            }
+            
+            previousHubUrl = HubUrl;
+        }
+    }
+
+    private async Task LoadRecentJobs()
+    {
+        // Prevent concurrent refresh operations
+        if (isRefreshing)
+        {
+            return;
+        }
+
+        try
+        {
+            isRefreshing = true;
+            isLoading = true;
+            hasLoadError = false;
+            jobs = await Api.GetRecentJobsAsync(MaxJobs);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading recent jobs.");
+            hasLoadError = true;
+            jobs = new List<JobHistoryItem>();
+        }
+        finally
+        {
+            isLoading = false;
+            isRefreshing = false;
+        }
+    }
+
+    private async Task InitializeSignalRConnection()
+    {
+        try
+        {
+            signalRConnectionFailed = false;
+            
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(HubUrl!)
+                .WithAutomaticReconnect()
+                .Build();
+
+            // Handle reconnection events
+            hubConnection.Reconnecting += async (_) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    signalRConnectionFailed = true;
+                });
+            };
+
+            hubConnection.Reconnected += async (_) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    signalRConnectionFailed = false;
+                });
+            };
+
+            hubConnection.Closed += async (_) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    signalRConnectionFailed = true;
+                });
+            };
+
+            // Listen for job completed events
+            hubConnection.On<JobHistoryItem>("JobCompleted", async (_) =>
+            {
+                try
+                {
+                    await InvokeAsync(async () =>
+                    {
+                        // Reload the recent jobs list when a job completes
+                        await LoadRecentJobs();
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error handling JobCompleted SignalR event.");
+                }
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            signalRConnectionFailed = true;
+            Logger.LogError(ex, "Failed to establish SignalR connection to hub at {HubUrl}", HubUrl);
+            
+            // Cleanup partially initialized connection
+            try
+            {
+                if (hubConnection is not null)
+                {
+                    await hubConnection.DisposeAsync();
+                }
+            }
+            catch (Exception disposeEx)
+            {
+                Logger.LogError(disposeEx, "Error disposing SignalR hub connection after failed start.");
+            }
+            finally
+            {
+                hubConnection = null;
+            }
+        }
+    }
+
+    private async Task CleanupSignalRConnection()
+    {
+        var connection = hubConnection;
+        if (connection is not null)
+        {
+            hubConnection = null; // Clear reference first to prevent reuse
+            
+            try
+            {
+                await connection.StopAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error while stopping SignalR hub connection.");
+            }
+
+            try
+            {
+                await connection.DisposeAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error while disposing SignalR hub connection.");
+            }
+        }
+    }
+
+    private void NavigateToJobDetail(string? jobId)
+    {
+        if (!string.IsNullOrEmpty(jobId))
+        {
+            // TODO: Navigate to job detail page when it's implemented
+            // For now, we'll just log it
+            Logger.LogInformation("Navigate to job detail: {JobId}", jobId);
+        }
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e, string? jobId)
+    {
+        if (e.Key == "Enter")
+        {
+            NavigateToJobDetail(jobId);
+        }
+        else if (e.Key == " ")
+        {
+            // Space key activates the button
+            // Note: Cannot prevent default in Blazor without JavaScript interop
+            // Page may scroll when space is pressed
+            NavigateToJobDetail(jobId);
+        }
+    }
+
+    private string GetStatusBadgeClass(string? status)
+    {
+        return status?.ToLower() switch
+        {
+            "completed" => "badge-success",
+            "success" => "badge-success",
+            "failed" => "badge-danger",
+            "error" => "badge-danger",
+            "running" => "badge-primary",
+            "in progress" => "badge-primary",
+            "pending" => "badge-warning",
+            "queued" => "badge-warning",
+            _ => "badge-secondary"
+        };
+    }
+
+    private string FormatDuration(TimeSpan? duration)
+    {
+        if (!duration.HasValue || duration.Value < TimeSpan.Zero)
+        {
+            return "N/A";
+        }
+
+        var timeSpan = duration.Value;
+        
+        if (timeSpan.TotalHours >= 1)
+        {
+            return $"{(int)timeSpan.TotalHours}h {timeSpan.Minutes}m {timeSpan.Seconds}s";
+        }
+        else if (timeSpan.TotalMinutes >= 1)
+        {
+            return $"{timeSpan.Minutes}m {timeSpan.Seconds}s";
+        }
+        else if (timeSpan.TotalSeconds >= 1)
+        {
+            return $"{(int)timeSpan.TotalSeconds}s";
+        }
+        else if (timeSpan.TotalMilliseconds >= 1)
+        {
+            return $"{(int)timeSpan.TotalMilliseconds}ms";
+        }
+        else
+        {
+            return "<1ms";
+        }
+    }
+
+    private string FormatTimestamp(DateTime? timestamp)
+    {
+        if (!timestamp.HasValue)
+        {
+            return "N/A";
+        }
+
+        return timestamp.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await CleanupSignalRConnection();
+    }
+}

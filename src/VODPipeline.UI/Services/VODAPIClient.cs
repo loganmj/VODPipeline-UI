@@ -21,12 +21,20 @@ namespace VODPipeline.UI.Services
             return await _http.GetFromJsonAsync<PipelineConfig>("api/config");
         }
 
+        public async Task<List<JobHistoryItem>?> GetRecentJobsAsync(int count = 10)
+        {
+            if (count <= 0)
+            {
+                throw new ArgumentException("Count must be positive", nameof(count));
+            }
+
+            return await _http.GetFromJsonAsync<List<JobHistoryItem>>($"api/jobs/recent?count={count}");
+        }
+      
         public async Task<SystemHealthStatus?> GetHealthAsync()
         {
             return await _http.GetFromJsonAsync<SystemHealthStatus>("api/health");
         }
-
-        // Add more endpoints as needed
     }
 
 }
