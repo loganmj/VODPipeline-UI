@@ -1,11 +1,23 @@
 @using VODPipeline.UI.Data
+@using VODPipeline.UI.Services
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Logging
 @implements IAsyncDisposable
+@inject VODAPIClient Api
 @inject ILogger<ConfigSummary> Logger
 
 <div class="config-summary">
-    @if (Config != null)
+    @if (isLoading)
+    {
+        <p>Loading configuration...</p>
+    }
+    else if (hasLoadError)
+    {
+        <div class="error-message">
+            <p>Unable to load configuration - please try again</p>
+        </div>
+    }
+    else if (Config != null)
     {
         <h4>Pipeline Configuration</h4>
         <div class="config-details">
@@ -35,7 +47,7 @@
     else
     {
         <div class="no-config">
-            <p>Loading configuration...</p>
+            <p>No configuration available</p>
         </div>
     }
     @if (signalRConnectionFailed)
@@ -56,9 +68,14 @@
     private HubConnection? hubConnection;
     private bool signalRConnectionFailed = false;
     private string? previousHubUrl;
+    private bool isLoading = true;
+    private bool hasLoadError = false;
+    private bool isRefreshing = false;
 
     protected override async Task OnInitializedAsync()
     {
+        await LoadConfig();
+        
         if (!string.IsNullOrEmpty(HubUrl))
         {
             await InitializeSignalRConnection();
@@ -84,6 +101,34 @@
             }
             
             previousHubUrl = HubUrl;
+        }
+    }
+
+    private async Task LoadConfig()
+    {
+        // Prevent concurrent refresh operations
+        if (isRefreshing)
+        {
+            return;
+        }
+
+        try
+        {
+            isRefreshing = true;
+            isLoading = true;
+            hasLoadError = false;
+            Config = await Api.GetConfigAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading pipeline configuration.");
+            hasLoadError = true;
+            Config = null;
+        }
+        finally
+        {
+            isLoading = false;
+            isRefreshing = false;
         }
     }
 

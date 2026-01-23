@@ -12,7 +12,7 @@
         <p>⚠️ Error loading dashboard: @errorMessage</p>
     </div>
 }
-else if (status == null || config == null)
+else if (status == null)
 {
     <p>Loading...</p>
 }
@@ -20,7 +20,7 @@ else
 {
     <CurrentJob JobStatus="@status" HubUrl="@signalRHubUrl" />
     <div class="section-spacing">
-        <ConfigSummary Config="@config" HubUrl="@signalRHubUrl" />
+        <ConfigSummary HubUrl="@signalRHubUrl" />
     </div>
 }
 
@@ -28,8 +28,6 @@ else
 
 @code {
     private JobStatus? status;
-    private PipelineConfig? config;
-    private SystemHealthStatus? healthStatus;
     private string? signalRHubUrl;
     private string? errorMessage;
 
@@ -38,7 +36,6 @@ else
         try
         {
             status = await Api.GetStatusAsync();
-            config = await Api.GetConfigAsync();
             signalRHubUrl = Configuration["SignalR:HubUrl"];
         }
         catch (Exception ex)
