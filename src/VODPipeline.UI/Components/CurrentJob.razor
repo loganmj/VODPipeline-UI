@@ -44,6 +44,12 @@
             <p>No active job running</p>
         </div>
     }
+    @if (signalRConnectionFailed)
+    {
+        <div class="connection-warning">
+            <small>⚠️ Live updates unavailable - displaying cached status</small>
+        </div>
+    }
 </div>
 
 @code {
@@ -54,12 +60,34 @@
     public string? HubUrl { get; set; }
 
     private HubConnection? hubConnection;
+    private bool signalRConnectionFailed = false;
+    private string? previousHubUrl;
 
     protected override async Task OnInitializedAsync()
     {
         if (!string.IsNullOrEmpty(HubUrl))
         {
             await InitializeSignalRConnection();
+            previousHubUrl = HubUrl;
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Handle HubUrl changes
+        if (HubUrl != previousHubUrl)
+        {
+            if (hubConnection is not null)
+            {
+                await CleanupSignalRConnection();
+            }
+
+            if (!string.IsNullOrEmpty(HubUrl))
+            {
+                await InitializeSignalRConnection();
+            }
+            
+            previousHubUrl = HubUrl;
         }
     }
 
@@ -67,28 +95,64 @@
     {
         try
         {
+            signalRConnectionFailed = false;
+            
             hubConnection = new HubConnectionBuilder()
                 .WithUrl(HubUrl!)
                 .WithAutomaticReconnect()
                 .Build();
 
-            hubConnection.On<JobStatus>("JobStatusUpdated", (updatedStatus) =>
+            hubConnection.On<JobStatus>("JobStatusUpdated", async (updatedStatus) =>
             {
-                JobStatus = updatedStatus;
-                InvokeAsync(StateHasChanged);
+                try
+                {
+                    await InvokeAsync(() =>
+                    {
+                        JobStatus = updatedStatus;
+                        StateHasChanged();
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error handling JobStatusUpdated SignalR event.");
+                }
             });
 
             await hubConnection.StartAsync();
         }
         catch (Exception ex)
         {
-            // Log error or handle connection failure gracefully
+            signalRConnectionFailed = true;
             Logger.LogError(ex, "Failed to establish SignalR connection to hub at {HubUrl}", HubUrl);
+        }
+    }
+
+    private async Task CleanupSignalRConnection()
+    {
+        if (hubConnection is not null)
+        {
+            try
+            {
+                hubConnection.Remove("JobStatusUpdated");
+                await hubConnection.StopAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error while stopping SignalR hub connection.");
+            }
+            
+            await hubConnection.DisposeAsync();
+            hubConnection = null;
         }
     }
 
     private string FormatTimeSpan(TimeSpan timeSpan)
     {
+        if (timeSpan < TimeSpan.Zero)
+        {
+            return "N/A";
+        }
+        
         if (timeSpan.TotalHours >= 1)
         {
             return $"{(int)timeSpan.TotalHours}h {timeSpan.Minutes}m {timeSpan.Seconds}s";
@@ -105,17 +169,6 @@
 
     public async ValueTask DisposeAsync()
     {
-        if (hubConnection is not null)
-        {
-            try
-            {
-                await hubConnection.StopAsync();
-            }
-            catch (Exception ex)
-            {
-                Logger.LogError(ex, "Error while stopping SignalR hub connection.");
-            }
-            await hubConnection.DisposeAsync();
-        }
+        await CleanupSignalRConnection();
     }
 }

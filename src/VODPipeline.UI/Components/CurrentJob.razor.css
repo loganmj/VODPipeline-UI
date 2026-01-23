@@ -41,3 +41,13 @@
 .text-muted {
     color: #6c757d;
 }
+
+.connection-warning {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 4px;
+    color: #856404;
+    text-align: center;
+}
