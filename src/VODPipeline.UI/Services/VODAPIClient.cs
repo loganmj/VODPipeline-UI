@@ -28,7 +28,7 @@ namespace VODPipeline.UI.Services
                 throw new ArgumentException("Count must be positive", nameof(count));
             }
 
-            return await _http.GetFromJsonAsync<List<JobHistoryItem>>($"api/jobs/recent?count={count}");
+            return await _http.GetFromJsonAsync<List<JobHistoryItem>>($"api/jobs?limit={count}");
         }
       
         public async Task<SystemHealthStatus?> GetHealthAsync()
