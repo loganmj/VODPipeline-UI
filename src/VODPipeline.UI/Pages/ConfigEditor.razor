@@ -1,0 +1,69 @@
+@page "/config"
+@using VODPipeline.UI.Data
+@using VODPipeline.UI.Services
+@inject VODAPIClient Api
+
+<h3>Configuration Editor</h3>
+
+@if (errorMessage != null)
+{
+    <div class="error-message">
+        <p>⚠️ Error loading configuration: @errorMessage</p>
+        <div class="editor-actions">
+            <a href="/" class="btn-back" aria-label="Return to the pipeline dashboard">Back to Dashboard</a>
+        </div>
+    </div>
+}
+else if (config == null)
+{
+    <p>Loading configuration...</p>
+}
+else
+{
+    <div class="config-editor">
+        <p class="editor-note">Configuration editing interface will be implemented here.</p>
+        
+        <h4>Current Configuration</h4>
+        <div class="config-display">
+            <div class="config-item">
+                <strong>Input Directory:</strong> @config.InputDirectory
+            </div>
+            <div class="config-item">
+                <strong>Output Directory:</strong> @config.OutputDirectory
+            </div>
+            <div class="config-item">
+                <strong>Archive Directory:</strong> @config.ArchiveDirectory
+            </div>
+            <div class="config-item">
+                <strong>Highlights Enabled:</strong> @(config.EnableHighlights ? "Yes" : "No")
+            </div>
+            <div class="config-item">
+                <strong>Scenes Enabled:</strong> @(config.EnableScenes ? "Yes" : "No")
+            </div>
+            <div class="config-item">
+                <strong>Silence Threshold:</strong> @config.SilenceThreshold dB
+            </div>
+        </div>
+        
+        <div class="editor-actions">
+            <a href="/" class="btn-back" aria-label="Return to the pipeline dashboard">Back to Dashboard</a>
+        </div>
+    </div>
+}
+
+@code {
+    private PipelineConfig? config;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            config = await Api.GetConfigAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+}

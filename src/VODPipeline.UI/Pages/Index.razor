@@ -6,33 +6,42 @@
 
 <h3>Pipeline Dashboard</h3>
 
-@if (healthStatus == null)
+@if (errorMessage != null)
 {
-    <p>Loading...</p>
+    <div class="error-message">
+        <p>⚠️ Error loading dashboard: @errorMessage</p>
+    </div>
 }
-else
-{
-    <SystemHealth HealthStatus="@healthStatus" HubUrl="@signalRHubUrl" />
-}
-
-@if (status == null)
+else if (status == null || config == null)
 {
     <p>Loading...</p>
 }
 else
 {
     <CurrentJob JobStatus="@status" HubUrl="@signalRHubUrl" />
+    <div class="section-spacing">
+        <ConfigSummary Config="@config" HubUrl="@signalRHubUrl" />
+    </div>
 }
 
 @code {
     private JobStatus? status;
+    private PipelineConfig? config;
     private SystemHealthStatus? healthStatus;
     private string? signalRHubUrl;
+    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
-        status = await Api.GetStatusAsync();
-        healthStatus = await Api.GetHealthAsync();
-        signalRHubUrl = Configuration["SignalR:HubUrl"];
+        try
+        {
+            status = await Api.GetStatusAsync();
+            config = await Api.GetConfigAsync();
+            signalRHubUrl = Configuration["SignalR:HubUrl"];
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
     }
 }

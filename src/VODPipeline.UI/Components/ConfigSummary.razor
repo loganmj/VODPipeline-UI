@@ -1,0 +1,198 @@
+@using VODPipeline.UI.Data
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Logging
+@implements IAsyncDisposable
+@inject ILogger<ConfigSummary> Logger
+
+<div class="config-summary">
+    @if (Config != null)
+    {
+        <h4>Pipeline Configuration</h4>
+        <div class="config-details">
+            <div class="config-field">
+                <strong>Input Directory:</strong> @Config.InputDirectory
+            </div>
+            <div class="config-field">
+                <strong>Output Directory:</strong> @Config.OutputDirectory
+            </div>
+            <div class="config-field">
+                <strong>Archive Directory:</strong> @Config.ArchiveDirectory
+            </div>
+            <div class="config-field">
+                <strong>Highlights Enabled:</strong> @(Config.EnableHighlights ? "Yes" : "No")
+            </div>
+            <div class="config-field">
+                <strong>Scenes Enabled:</strong> @(Config.EnableScenes ? "Yes" : "No")
+            </div>
+            <div class="config-field">
+                <strong>Silence Threshold:</strong> @Config.SilenceThreshold dB
+            </div>
+        </div>
+        <div class="config-actions">
+            <a href="/config" class="btn-config-editor" aria-label="Edit pipeline configuration settings">Edit Configuration</a>
+        </div>
+    }
+    else
+    {
+        <div class="no-config">
+            <p>Loading configuration...</p>
+        </div>
+    }
+    @if (signalRConnectionFailed)
+    {
+        <div class="connection-warning">
+            <small>⚠️ Live updates unavailable - displaying cached configuration</small>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public PipelineConfig? Config { get; set; }
+
+    [Parameter]
+    public string? HubUrl { get; set; }
+
+    private HubConnection? hubConnection;
+    private bool signalRConnectionFailed = false;
+    private string? previousHubUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(HubUrl))
+        {
+            await InitializeSignalRConnection();
+            previousHubUrl = HubUrl;
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // Handle HubUrl changes
+        // Note: Config parameter updates from parent will be overridden by SignalR events
+        // when the connection is active, as SignalR provides the authoritative real-time state.
+        if (HubUrl != previousHubUrl)
+        {
+            if (hubConnection is not null)
+            {
+                await CleanupSignalRConnection();
+            }
+
+            if (!string.IsNullOrEmpty(HubUrl))
+            {
+                await InitializeSignalRConnection();
+            }
+            
+            previousHubUrl = HubUrl;
+        }
+    }
+
+    private async Task InitializeSignalRConnection()
+    {
+        try
+        {
+            signalRConnectionFailed = false;
+            
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(HubUrl!)
+                .WithAutomaticReconnect()
+                .Build();
+
+            // Handle reconnection events
+            hubConnection.Reconnecting += async (error) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    signalRConnectionFailed = true;
+                });
+            };
+
+            hubConnection.Reconnected += async (connectionId) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    signalRConnectionFailed = false;
+                });
+            };
+
+            hubConnection.Closed += async (error) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    signalRConnectionFailed = true;
+                });
+            };
+
+            hubConnection.On<PipelineConfig>("ConfigUpdated", async (updatedConfig) =>
+            {
+                try
+                {
+                    await InvokeAsync(() =>
+                    {
+                        Config = updatedConfig;
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error handling ConfigUpdated SignalR event.");
+                }
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            signalRConnectionFailed = true;
+            Logger.LogError(ex, "Failed to establish SignalR connection to hub at {HubUrl}", HubUrl);
+            
+            // Cleanup partially initialized connection
+            try
+            {
+                if (hubConnection is not null)
+                {
+                    await hubConnection.DisposeAsync();
+                }
+            }
+            catch (Exception disposeEx)
+            {
+                Logger.LogError(disposeEx, "Error disposing SignalR hub connection after failed start.");
+            }
+            finally
+            {
+                hubConnection = null;
+            }
+        }
+    }
+
+    private async Task CleanupSignalRConnection()
+    {
+        var connection = hubConnection;
+        if (connection is not null)
+        {
+            hubConnection = null; // Clear reference first to prevent reuse
+            
+            try
+            {
+                await connection.StopAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error while stopping SignalR hub connection.");
+            }
+
+            try
+            {
+                await connection.DisposeAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error while disposing SignalR hub connection.");
+            }
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await CleanupSignalRConnection();
+    }
+}
