@@ -1,0 +1,546 @@
+@page "/job/{JobId}"
+@using VODPipeline.UI.Data
+@using VODPipeline.UI.Services
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Logging
+@implements IAsyncDisposable
+@inject VODAPIClient Api
+@inject IConfiguration Configuration
+@inject NavigationManager NavigationManager
+@inject ILogger<JobDetail> Logger
+
+<div class="job-detail-page">
+    <div class="page-header">
+        <button class="btn btn-secondary mb-3" @onclick="NavigateBack">
+            ← Back to Dashboard
+        </button>
+        <h3>Job Details</h3>
+    </div>
+
+    @if (errorMessage != null)
+    {
+        <div class="alert alert-danger">
+            <p>⚠️ Error loading job details: @errorMessage</p>
+        </div>
+    }
+    else if (isLoading)
+    {
+        <div class="loading-container">
+            <p>Loading job details...</p>
+        </div>
+    }
+    else if (jobDetail == null)
+    {
+        <div class="alert alert-warning">
+            <p>Job not found</p>
+        </div>
+    }
+    else
+    {
+        <!-- Job Overview -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h4>Job Overview</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="detail-field">
+                            <strong>Job ID:</strong> <span>@jobDetail.JobId</span>
+                        </div>
+                        <div class="detail-field">
+                            <strong>File Name:</strong> <span>@jobDetail.FileName</span>
+                        </div>
+                        <div class="detail-field">
+                            <strong>Status:</strong> 
+                            <span class="badge @GetStatusBadgeClass(jobDetail.Status)">
+                                @jobDetail.Status
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="detail-field">
+                            <strong>Start Time:</strong> <span>@FormatTimestamp(jobDetail.StartTime)</span>
+                        </div>
+                        <div class="detail-field">
+                            <strong>End Time:</strong> <span>@FormatTimestamp(jobDetail.EndTime)</span>
+                        </div>
+                        <div class="detail-field">
+                            <strong>Duration:</strong> <span>@FormatDuration(jobDetail.Duration)</span>
+                        </div>
+                    </div>
+                </div>
+                @if (jobDetail.ProgressPercent.HasValue && IsJobRunning(jobDetail.Status))
+                {
+                    <div class="mt-3">
+                        <div class="progress-label">
+                            <strong>Progress:</strong> @jobDetail.ProgressPercent%
+                        </div>
+                        <div class="progress">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 role="progressbar" 
+                                 style="width: @(jobDetail.ProgressPercent)%"
+                                 aria-valuenow="@jobDetail.ProgressPercent" 
+                                 aria-valuemin="0" 
+                                 aria-valuemax="100">
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Stages -->
+        @if (jobDetail.Stages != null && jobDetail.Stages.Any())
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4>Stages</h4>
+                </div>
+                <div class="card-body">
+                    <div class="stages-container">
+                        @foreach (var stage in jobDetail.Stages)
+                        {
+                            <div class="stage-item mb-3 p-3 border rounded @GetStageClass(stage.Status)">
+                                <div class="stage-header">
+                                    <h5>@stage.Name</h5>
+                                    <span class="badge @GetStatusBadgeClass(stage.Status)">
+                                        @stage.Status
+                                    </span>
+                                </div>
+                                <div class="stage-details">
+                                    <div class="detail-field">
+                                        <strong>Start Time:</strong> @FormatTimestamp(stage.StartTime)
+                                    </div>
+                                    <div class="detail-field">
+                                        <strong>End Time:</strong> @FormatTimestamp(stage.EndTime)
+                                    </div>
+                                    <div class="detail-field">
+                                        <strong>Duration:</strong> @FormatDuration(stage.Duration)
+                                    </div>
+                                </div>
+                                @if (stage.ProgressPercent.HasValue && IsStageRunning(stage.Status))
+                                {
+                                    <div class="mt-2">
+                                        <div class="progress">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                                 role="progressbar" 
+                                                 style="width: @(stage.ProgressPercent)%"
+                                                 aria-valuenow="@stage.ProgressPercent" 
+                                                 aria-valuemin="0" 
+                                                 aria-valuemax="100">
+                                                @stage.ProgressPercent%
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Statistics -->
+        @if (jobDetail.HighlightCount.HasValue || jobDetail.SceneCount.HasValue)
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4>Statistics</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        @if (jobDetail.HighlightCount.HasValue)
+                        {
+                            <div class="col-md-6">
+                                <div class="stat-item">
+                                    <div class="stat-label">Highlights</div>
+                                    <div class="stat-value">@jobDetail.HighlightCount</div>
+                                </div>
+                            </div>
+                        }
+                        @if (jobDetail.SceneCount.HasValue)
+                        {
+                            <div class="col-md-6">
+                                <div class="stat-item">
+                                    <div class="stat-label">Scenes</div>
+                                    <div class="stat-value">@jobDetail.SceneCount</div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Timeline / Events -->
+        @if (jobEvents != null && jobEvents.Any())
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4>Timeline</h4>
+                </div>
+                <div class="card-body">
+                    <div class="timeline">
+                        @foreach (var evt in jobEvents.OrderByDescending(e => e.Timestamp))
+                        {
+                            <div class="timeline-item mb-3">
+                                <div class="timeline-time">
+                                    <small class="text-muted">@FormatTimestamp(evt.Timestamp)</small>
+                                </div>
+                                <div class="timeline-content p-2 border-start border-3">
+                                    <div class="timeline-event-type">
+                                        <strong>@evt.EventType</strong>
+                                        @if (!string.IsNullOrEmpty(evt.Stage))
+                                        {
+                                            <span class="badge badge-info ms-2">@evt.Stage</span>
+                                        }
+                                    </div>
+                                    @if (!string.IsNullOrEmpty(evt.Message))
+                                    {
+                                        <div class="timeline-message">@evt.Message</div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h4>Timeline</h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted">No events available for this job</p>
+                </div>
+            </div>
+        }
+    }
+
+    @if (signalRConnectionFailed)
+    {
+        <div class="alert alert-warning mt-3">
+            <small>⚠️ Live updates unavailable - displaying cached data</small>
+        </div>
+    }
+    @if (IsJobRunning(jobDetail?.Status))
+    {
+        <div class="alert alert-info mt-3">
+            <small>🔄 Job is running - updates are being received in real-time</small>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter]
+    public string? JobId { get; set; }
+
+    private JobDetailInfo? jobDetail;
+    private List<JobEvent>? jobEvents;
+    private bool isLoading = true;
+    private string? errorMessage;
+    private HubConnection? hubConnection;
+    private bool signalRConnectionFailed = false;
+    private string? signalRHubUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (string.IsNullOrEmpty(JobId))
+        {
+            errorMessage = "Job ID is required";
+            isLoading = false;
+            return;
+        }
+
+        await LoadJobData();
+
+        // Set up SignalR connection for real-time updates
+        signalRHubUrl = Configuration["SignalR:HubUrl"];
+        if (!string.IsNullOrEmpty(signalRHubUrl))
+        {
+            await InitializeSignalRConnection();
+        }
+    }
+
+    private async Task LoadJobData()
+    {
+        try
+        {
+            isLoading = true;
+            errorMessage = null;
+
+            // Load job detail and events in parallel
+            var jobDetailTask = Api.GetJobDetailAsync(JobId!);
+            var jobEventsTask = Api.GetJobEventsAsync(JobId!);
+
+            await Task.WhenAll(jobDetailTask, jobEventsTask);
+
+            jobDetail = await jobDetailTask;
+            jobEvents = await jobEventsTask;
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading job data for job {JobId}", JobId);
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task InitializeSignalRConnection()
+    {
+        try
+        {
+            signalRConnectionFailed = false;
+            
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(signalRHubUrl!)
+                .WithAutomaticReconnect()
+                .Build();
+
+            // Handle reconnection events
+            hubConnection.Reconnecting += async (error) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    signalRConnectionFailed = true;
+                    StateHasChanged();
+                });
+            };
+
+            hubConnection.Reconnected += async (connectionId) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    signalRConnectionFailed = false;
+                    StateHasChanged();
+                });
+            };
+
+            hubConnection.Closed += async (error) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    signalRConnectionFailed = true;
+                    StateHasChanged();
+                });
+            };
+
+            // Listen for job detail updates
+            hubConnection.On<JobDetailInfo>("JobDetailUpdated", async (updatedDetail) =>
+            {
+                try
+                {
+                    await InvokeAsync(() =>
+                    {
+                        if (updatedDetail.JobId == JobId)
+                        {
+                            jobDetail = updatedDetail;
+                            StateHasChanged();
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error handling JobDetailUpdated SignalR event.");
+                }
+            });
+
+            // Listen for new job events
+            hubConnection.On<JobEvent>("JobEventAdded", async (newEvent) =>
+            {
+                try
+                {
+                    await InvokeAsync(() =>
+                    {
+                        if (newEvent.JobId == JobId)
+                        {
+                            jobEvents ??= new List<JobEvent>();
+                            jobEvents.Add(newEvent);
+                            StateHasChanged();
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error handling JobEventAdded SignalR event.");
+                }
+            });
+
+            // Listen for job completion
+            hubConnection.On<JobHistoryItem>("JobCompleted", async (completedJob) =>
+            {
+                try
+                {
+                    await InvokeAsync(async () =>
+                    {
+                        if (completedJob.JobId == JobId)
+                        {
+                            // Reload job data when job completes
+                            await LoadJobData();
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error handling JobCompleted SignalR event.");
+                }
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            signalRConnectionFailed = true;
+            Logger.LogError(ex, "Failed to establish SignalR connection to hub at {HubUrl}", signalRHubUrl);
+            
+            // Cleanup partially initialized connection
+            try
+            {
+                if (hubConnection is not null)
+                {
+                    await hubConnection.DisposeAsync();
+                }
+            }
+            catch (Exception disposeEx)
+            {
+                Logger.LogError(disposeEx, "Error disposing SignalR hub connection after failed start.");
+            }
+            finally
+            {
+                hubConnection = null;
+            }
+        }
+    }
+
+    private async Task CleanupSignalRConnection()
+    {
+        var connection = hubConnection;
+        if (connection is not null)
+        {
+            hubConnection = null; // Clear reference first to prevent reuse
+            
+            try
+            {
+                await connection.StopAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error while stopping SignalR hub connection.");
+            }
+
+            try
+            {
+                await connection.DisposeAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error while disposing SignalR hub connection.");
+            }
+        }
+    }
+
+    private void NavigateBack()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+
+    private bool IsJobRunning(string? status)
+    {
+        return status?.ToLower() switch
+        {
+            "running" => true,
+            "in progress" => true,
+            "processing" => true,
+            _ => false
+        };
+    }
+
+    private bool IsStageRunning(string? status)
+    {
+        return IsJobRunning(status);
+    }
+
+    private string GetStatusBadgeClass(string? status)
+    {
+        return status?.ToLower() switch
+        {
+            "completed" => "badge-success",
+            "success" => "badge-success",
+            "failed" => "badge-danger",
+            "error" => "badge-danger",
+            "running" => "badge-primary",
+            "in progress" => "badge-primary",
+            "processing" => "badge-primary",
+            "pending" => "badge-warning",
+            "queued" => "badge-warning",
+            _ => "badge-secondary"
+        };
+    }
+
+    private string GetStageClass(string? status)
+    {
+        return status?.ToLower() switch
+        {
+            "completed" => "stage-completed",
+            "success" => "stage-completed",
+            "failed" => "stage-failed",
+            "error" => "stage-failed",
+            "running" => "stage-running",
+            "in progress" => "stage-running",
+            "processing" => "stage-running",
+            _ => ""
+        };
+    }
+
+    private string FormatDuration(TimeSpan? duration)
+    {
+        if (!duration.HasValue || duration.Value < TimeSpan.Zero)
+        {
+            return "N/A";
+        }
+
+        var timeSpan = duration.Value;
+        
+        if (timeSpan.TotalHours >= 1)
+        {
+            return $"{(int)timeSpan.TotalHours}h {timeSpan.Minutes}m {timeSpan.Seconds}s";
+        }
+        else if (timeSpan.TotalMinutes >= 1)
+        {
+            return $"{timeSpan.Minutes}m {timeSpan.Seconds}s";
+        }
+        else if (timeSpan.TotalSeconds >= 1)
+        {
+            return $"{(int)timeSpan.TotalSeconds}s";
+        }
+        else if (timeSpan.TotalMilliseconds >= 1)
+        {
+            return $"{(int)timeSpan.TotalMilliseconds}ms";
+        }
+        else
+        {
+            return "<1ms";
+        }
+    }
+
+    private string FormatTimestamp(DateTime? timestamp)
+    {
+        if (!timestamp.HasValue)
+        {
+            return "N/A";
+        }
+
+        return timestamp.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz");
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await CleanupSignalRConnection();
+    }
+}

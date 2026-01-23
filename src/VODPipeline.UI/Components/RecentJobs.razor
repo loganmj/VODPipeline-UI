@@ -4,6 +4,7 @@
 @using Microsoft.Extensions.Logging
 @implements IAsyncDisposable
 @inject VODAPIClient Api
+@inject NavigationManager NavigationManager
 @inject ILogger<RecentJobs> Logger
 
 <div class="recent-jobs">
@@ -260,9 +261,7 @@
     {
         if (!string.IsNullOrEmpty(jobId))
         {
-            // TODO: Navigate to job detail page when it's implemented
-            // For now, we'll just log it
-            Logger.LogInformation("Navigate to job detail: {JobId}", jobId);
+            NavigationManager.NavigateTo($"/job/{jobId}");
         }
     }
 
