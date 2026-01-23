@@ -1,6 +1,7 @@
 @page "/job/{JobId}"
 @using VODPipeline.UI.Data
 @using VODPipeline.UI.Services
+@using VODPipeline.UI.Utilities
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Logging
 @implements IAsyncDisposable
@@ -53,20 +54,20 @@
                         </div>
                         <div class="detail-field">
                             <strong>Status:</strong> 
-                            <span class="badge @GetStatusBadgeClass(jobDetail.Status)">
+                            <span class="badge @FormatHelper.GetStatusBadgeClass(jobDetail.Status)">
                                 @jobDetail.Status
                             </span>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="detail-field">
-                            <strong>Start Time:</strong> <span>@FormatTimestamp(jobDetail.StartTime)</span>
+                            <strong>Start Time:</strong> <span>@FormatHelper.FormatTimestamp(jobDetail.StartTime)</span>
                         </div>
                         <div class="detail-field">
-                            <strong>End Time:</strong> <span>@FormatTimestamp(jobDetail.EndTime)</span>
+                            <strong>End Time:</strong> <span>@FormatHelper.FormatTimestamp(jobDetail.EndTime)</span>
                         </div>
                         <div class="detail-field">
-                            <strong>Duration:</strong> <span>@FormatDuration(jobDetail.Duration)</span>
+                            <strong>Duration:</strong> <span>@FormatHelper.FormatDuration(jobDetail.Duration)</span>
                         </div>
                     </div>
                 </div>
@@ -104,19 +105,19 @@
                             <div class="stage-item mb-3 p-3 border rounded @GetStageClass(stage.Status)">
                                 <div class="stage-header">
                                     <h5>@stage.Name</h5>
-                                    <span class="badge @GetStatusBadgeClass(stage.Status)">
+                                    <span class="badge @FormatHelper.GetStatusBadgeClass(stage.Status)">
                                         @stage.Status
                                     </span>
                                 </div>
                                 <div class="stage-details">
                                     <div class="detail-field">
-                                        <strong>Start Time:</strong> @FormatTimestamp(stage.StartTime)
+                                        <strong>Start Time:</strong> @FormatHelper.FormatTimestamp(stage.StartTime)
                                     </div>
                                     <div class="detail-field">
-                                        <strong>End Time:</strong> @FormatTimestamp(stage.EndTime)
+                                        <strong>End Time:</strong> @FormatHelper.FormatTimestamp(stage.EndTime)
                                     </div>
                                     <div class="detail-field">
-                                        <strong>Duration:</strong> @FormatDuration(stage.Duration)
+                                        <strong>Duration:</strong> @FormatHelper.FormatDuration(stage.Duration)
                                     </div>
                                 </div>
                                 @if (stage.ProgressPercent.HasValue && IsStageRunning(stage.Status))
@@ -186,7 +187,7 @@
                         {
                             <div class="timeline-item mb-3">
                                 <div class="timeline-time">
-                                    <small class="text-muted">@FormatTimestamp(evt.Timestamp)</small>
+                                    <small class="text-muted">@FormatHelper.FormatTimestamp(evt.Timestamp)</small>
                                 </div>
                                 <div class="timeline-content p-2 border-start border-3">
                                     <div class="timeline-event-type">
@@ -466,23 +467,6 @@
         return IsJobRunning(status);
     }
 
-    private string GetStatusBadgeClass(string? status)
-    {
-        return status?.ToLower() switch
-        {
-            "completed" => "badge-success",
-            "success" => "badge-success",
-            "failed" => "badge-danger",
-            "error" => "badge-danger",
-            "running" => "badge-primary",
-            "in progress" => "badge-primary",
-            "processing" => "badge-primary",
-            "pending" => "badge-warning",
-            "queued" => "badge-warning",
-            _ => "badge-secondary"
-        };
-    }
-
     private string GetStageClass(string? status)
     {
         return status?.ToLower() switch
@@ -496,47 +480,6 @@
             "processing" => "stage-running",
             _ => ""
         };
-    }
-
-    private string FormatDuration(TimeSpan? duration)
-    {
-        if (!duration.HasValue || duration.Value < TimeSpan.Zero)
-        {
-            return "N/A";
-        }
-
-        var timeSpan = duration.Value;
-        
-        if (timeSpan.TotalHours >= 1)
-        {
-            return $"{(int)timeSpan.TotalHours}h {timeSpan.Minutes}m {timeSpan.Seconds}s";
-        }
-        else if (timeSpan.TotalMinutes >= 1)
-        {
-            return $"{timeSpan.Minutes}m {timeSpan.Seconds}s";
-        }
-        else if (timeSpan.TotalSeconds >= 1)
-        {
-            return $"{(int)timeSpan.TotalSeconds}s";
-        }
-        else if (timeSpan.TotalMilliseconds >= 1)
-        {
-            return $"{(int)timeSpan.TotalMilliseconds}ms";
-        }
-        else
-        {
-            return "<1ms";
-        }
-    }
-
-    private string FormatTimestamp(DateTime? timestamp)
-    {
-        if (!timestamp.HasValue)
-        {
-            return "N/A";
-        }
-
-        return timestamp.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss zzz");
     }
 
     public async ValueTask DisposeAsync()
