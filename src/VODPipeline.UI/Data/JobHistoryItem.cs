@@ -1,6 +1,6 @@
 namespace VODPipeline.UI.Data
 {
-    public class JobHistoryItem
+    public class JobHistoryItem : IJobHistoryItem
     {
         public string? JobId { get; set; }
         public string? FileName { get; set; }
