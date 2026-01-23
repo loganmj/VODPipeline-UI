@@ -37,7 +37,6 @@ else
         try
         {
             status = await JobService.GetStatusAsync();
-            config = await ConfigService.GetConfigAsync();
             signalRHubUrl = Configuration["SignalR:HubUrl"];
         }
         catch (Exception ex)
