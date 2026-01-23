@@ -74,7 +74,16 @@
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadConfig();
+        // Load initial config from API only if no value was provided by the parent
+        if (Config == null)
+        {
+            await LoadConfig();
+        }
+        else
+        {
+            // Config was provided, clear loading state
+            isLoading = false;
+        }
         
         if (!string.IsNullOrEmpty(HubUrl))
         {

@@ -1,0 +1,31 @@
+.dashboard-page {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+}
+
+.dashboard-section {
+    width: 100%;
+}
+
+.loading-message,
+.error-message {
+    padding: 1rem;
+    border-radius: 0.25rem;
+}
+
+.loading-message {
+    background-color: #f8f9fa;
+    color: #6c757d;
+}
+
+.error-message {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.error-message p,
+.loading-message p {
+    margin: 0;
+}

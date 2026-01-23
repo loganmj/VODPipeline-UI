@@ -1,0 +1,94 @@
+@using VODPipeline.UI.Data
+@using VODPipeline.UI.Services
+@inject JobService JobService
+@inject HealthService HealthService
+@inject ConfigService ConfigService
+@inject IConfiguration Configuration
+@inject ILogger<DashboardPage> Logger
+
+<div class="dashboard-page">
+    @if (isLoading)
+    {
+        <div class="loading-message">
+            <p>Loading dashboard...</p>
+        </div>
+    }
+    else
+    {
+        <div class="dashboard-section">
+            <CurrentJob JobStatus="@jobStatus" HubUrl="@signalRHubUrl" />
+        </div>
+
+        <div class="dashboard-section">
+            <SystemHealth HealthStatus="@healthStatus" HubUrl="@signalRHubUrl" />
+        </div>
+
+        <div class="dashboard-section">
+            <RecentJobs MaxJobs="10" HubUrl="@signalRHubUrl" />
+        </div>
+
+        <div class="dashboard-section">
+            <ConfigSummary Config="@config" HubUrl="@signalRHubUrl" />
+        </div>
+    }
+</div>
+
+@code {
+    private JobStatus? jobStatus;
+    private SystemHealthStatus? healthStatus;
+    private PipelineConfig? config;
+    private string? signalRHubUrl;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Load initial data from all services
+        signalRHubUrl = Configuration["SignalR:HubUrl"];
+        
+        // Load data in parallel for better performance
+        // Each service call is wrapped to allow partial data loading
+        var jobStatusTask = LoadJobStatusAsync();
+        var healthStatusTask = LoadHealthStatusAsync();
+        var configTask = LoadConfigAsync();
+
+        await Task.WhenAll(jobStatusTask, healthStatusTask, configTask);
+
+        isLoading = false;
+    }
+
+    private async Task LoadJobStatusAsync()
+    {
+        try
+        {
+            jobStatus = await JobService.GetStatusAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading job status");
+        }
+    }
+
+    private async Task LoadHealthStatusAsync()
+    {
+        try
+        {
+            healthStatus = await HealthService.GetHealthAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading health status");
+        }
+    }
+
+    private async Task LoadConfigAsync()
+    {
+        try
+        {
+            config = await ConfigService.GetConfigAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error loading configuration");
+        }
+    }
+}
