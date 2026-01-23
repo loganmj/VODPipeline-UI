@@ -6,22 +6,27 @@
 
 <h3>Pipeline Dashboard</h3>
 
-@if (status == null)
+@if (status == null || config == null)
 {
     <p>Loading...</p>
 }
 else
 {
     <CurrentJob JobStatus="@status" HubUrl="@signalRHubUrl" />
+    <div style="margin-top: 2rem;">
+        <ConfigSummary Config="@config" HubUrl="@signalRHubUrl" />
+    </div>
 }
 
 @code {
     private JobStatus? status;
+    private PipelineConfig? config;
     private string? signalRHubUrl;
 
     protected override async Task OnInitializedAsync()
     {
         status = await Api.GetStatusAsync();
+        config = await Api.GetConfigAsync();
         signalRHubUrl = Configuration["SignalR:HubUrl"];
     }
 }
