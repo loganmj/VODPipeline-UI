@@ -46,7 +46,8 @@
                             tabindex="0"
                             style="cursor: pointer;"
                             @onclick="@(() => NavigateToJobDetail(job.JobId))"
-                            @onkeydown=@(e => { if (e.Key == "Enter" || e.Key == " ") { NavigateToJobDetail(job.JobId); } })>
+                            @onkeydown="@(e => HandleKeyDown(e, job.JobId))"
+                            @onkeydown:preventDefault="@preventDefaultForSpace">
                             <td>@job.JobId</td>
                             <td>@job.FileName</td>
                             <td>
@@ -91,6 +92,7 @@
     private bool signalRConnectionFailed = false;
     private string? previousHubUrl;
     private bool isRefreshing = false;
+    private bool preventDefaultForSpace = true;
 
     protected override async Task OnInitializedAsync()
     {
@@ -263,6 +265,14 @@
             // TODO: Navigate to job detail page when it's implemented
             // For now, we'll just log it
             Logger.LogInformation("Navigate to job detail: {JobId}", jobId);
+        }
+    }
+
+    private void HandleKeyDown(KeyboardEventArgs e, string? jobId)
+    {
+        if (e.Key == "Enter" || e.Key == " ")
+        {
+            NavigateToJobDetail(jobId);
         }
     }
 
