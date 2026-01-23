@@ -1,0 +1,291 @@
+@using VODPipeline.UI.Data
+@using Microsoft.AspNetCore.SignalR.Client
+@using Microsoft.Extensions.Logging
+@implements IAsyncDisposable
+@inject ILogger<SystemHealth> Logger
+
+<div class="system-health">
+    <h4>System Health</h4>
+    
+    @if (HealthStatus != null)
+    {
+        <div class="health-grid">
+            <div class="health-component">
+                <div class="health-indicator @GetStatusClass(HealthStatus.Function.Status)"></div>
+                <div class="health-details">
+                    <strong>Function</strong>
+                    @if (HealthStatus.Function.LastHeartbeat.HasValue)
+                    {
+                        <small>Last heartbeat: @FormatTimestamp(HealthStatus.Function.LastHeartbeat.Value)</small>
+                    }
+                    @if (!string.IsNullOrEmpty(HealthStatus.Function.Message))
+                    {
+                        <small class="health-message">@HealthStatus.Function.Message</small>
+                    }
+                </div>
+            </div>
+
+            <div class="health-component">
+                <div class="health-indicator @GetStatusClass(HealthStatus.API.Status)"></div>
+                <div class="health-details">
+                    <strong>API</strong>
+                    @if (HealthStatus.API.LastHeartbeat.HasValue)
+                    {
+                        <small>Last heartbeat: @FormatTimestamp(HealthStatus.API.LastHeartbeat.Value)</small>
+                    }
+                    @if (!string.IsNullOrEmpty(HealthStatus.API.Message))
+                    {
+                        <small class="health-message">@HealthStatus.API.Message</small>
+                    }
+                </div>
+            </div>
+
+            <div class="health-component">
+                <div class="health-indicator @GetStatusClass(HealthStatus.Database.Status)"></div>
+                <div class="health-details">
+                    <strong>Database</strong>
+                    @if (HealthStatus.Database.LastHeartbeat.HasValue)
+                    {
+                        <small>Last heartbeat: @FormatTimestamp(HealthStatus.Database.LastHeartbeat.Value)</small>
+                    }
+                    @if (!string.IsNullOrEmpty(HealthStatus.Database.Message))
+                    {
+                        <small class="health-message">@HealthStatus.Database.Message</small>
+                    }
+                </div>
+            </div>
+
+            <div class="health-component">
+                <div class="health-indicator @GetStatusClass(HealthStatus.FileShare.Status)"></div>
+                <div class="health-details">
+                    <strong>File Share</strong>
+                    @if (HealthStatus.FileShare.LastHeartbeat.HasValue)
+                    {
+                        <small>Last heartbeat: @FormatTimestamp(HealthStatus.FileShare.LastHeartbeat.Value)</small>
+                    }
+                    @if (!string.IsNullOrEmpty(HealthStatus.FileShare.Message))
+                    {
+                        <small class="health-message">@HealthStatus.FileShare.Message</small>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @if (HealthStatus.LastUpdated.HasValue)
+        {
+            <div class="status-footer text-muted">
+                <small>Last updated: @HealthStatus.LastUpdated.Value.ToLocalTime().ToString("HH:mm:ss zzz")</small>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="no-status">
+            <p>Loading health status...</p>
+        </div>
+    }
+
+    <div class="signalr-status">
+        @if (hubConnection?.State == HubConnectionState.Connected)
+        {
+            <small class="connection-status connected">🟢 Live updates active</small>
+        }
+        else if (hubConnection?.State == HubConnectionState.Connecting || hubConnection?.State == HubConnectionState.Reconnecting)
+        {
+            <small class="connection-status connecting">🟡 Connecting...</small>
+        }
+        else if (signalRConnectionFailed)
+        {
+            <small class="connection-status disconnected">🔴 Live updates unavailable</small>
+        }
+        else
+        {
+            <small class="connection-status unknown">⚪ No SignalR connection</small>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public SystemHealthStatus? HealthStatus { get; set; }
+
+    [Parameter]
+    public string? HubUrl { get; set; }
+
+    private HubConnection? hubConnection;
+    private bool signalRConnectionFailed = false;
+    private string? previousHubUrl;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(HubUrl))
+        {
+            await InitializeSignalRConnection();
+            previousHubUrl = HubUrl;
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (HubUrl != previousHubUrl)
+        {
+            if (hubConnection is not null)
+            {
+                await CleanupSignalRConnection();
+            }
+
+            if (!string.IsNullOrEmpty(HubUrl))
+            {
+                await InitializeSignalRConnection();
+            }
+            
+            previousHubUrl = HubUrl;
+        }
+    }
+
+    private async Task InitializeSignalRConnection()
+    {
+        try
+        {
+            signalRConnectionFailed = false;
+            
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl(HubUrl!)
+                .WithAutomaticReconnect()
+                .Build();
+
+            hubConnection.Reconnecting += async (error) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    signalRConnectionFailed = true;
+                    StateHasChanged();
+                });
+            };
+
+            hubConnection.Reconnected += async (connectionId) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    signalRConnectionFailed = false;
+                    StateHasChanged();
+                });
+            };
+
+            hubConnection.Closed += async (error) =>
+            {
+                await InvokeAsync(() =>
+                {
+                    signalRConnectionFailed = true;
+                    StateHasChanged();
+                });
+            };
+
+            hubConnection.On<SystemHealthStatus>("SystemHealthUpdated", async (updatedStatus) =>
+            {
+                try
+                {
+                    await InvokeAsync(() =>
+                    {
+                        HealthStatus = updatedStatus;
+                        StateHasChanged();
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Logger.LogError(ex, "Error handling SystemHealthUpdated SignalR event.");
+                }
+            });
+
+            await hubConnection.StartAsync();
+        }
+        catch (Exception ex)
+        {
+            signalRConnectionFailed = true;
+            Logger.LogError(ex, "Failed to establish SignalR connection to hub at {HubUrl}", HubUrl);
+            
+            try
+            {
+                if (hubConnection is not null)
+                {
+                    await hubConnection.DisposeAsync();
+                }
+            }
+            catch (Exception disposeEx)
+            {
+                Logger.LogError(disposeEx, "Error disposing SignalR hub connection after failed start.");
+            }
+            finally
+            {
+                hubConnection = null;
+            }
+        }
+    }
+
+    private async Task CleanupSignalRConnection()
+    {
+        var connection = hubConnection;
+        if (connection is not null)
+        {
+            hubConnection = null;
+            
+            try
+            {
+                await connection.StopAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error while stopping SignalR hub connection.");
+            }
+
+            try
+            {
+                await connection.DisposeAsync();
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error while disposing SignalR hub connection.");
+            }
+        }
+    }
+
+    private string GetStatusClass(HealthStatus healthStatus)
+    {
+        return healthStatus switch
+        {
+            Data.HealthStatus.Healthy => "status-healthy",
+            Data.HealthStatus.Degraded => "status-degraded",
+            Data.HealthStatus.Unhealthy => "status-unhealthy",
+            _ => "status-unknown"
+        };
+    }
+
+    private string FormatTimestamp(DateTime timestamp)
+    {
+        var localTime = timestamp.ToLocalTime();
+        var now = DateTime.Now;
+        var diff = now - localTime;
+
+        if (diff.TotalSeconds < 60)
+        {
+            return "just now";
+        }
+        else if (diff.TotalMinutes < 60)
+        {
+            return $"{(int)diff.TotalMinutes}m ago";
+        }
+        else if (diff.TotalHours < 24)
+        {
+            return $"{(int)diff.TotalHours}h ago";
+        }
+        else
+        {
+            return localTime.ToString("MMM d, HH:mm");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await CleanupSignalRConnection();
+    }
+}

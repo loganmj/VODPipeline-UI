@@ -6,6 +6,15 @@
 
 <h3>Pipeline Dashboard</h3>
 
+@if (healthStatus == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <SystemHealth HealthStatus="@healthStatus" HubUrl="@signalRHubUrl" />
+}
+
 @if (status == null)
 {
     <p>Loading...</p>
@@ -17,11 +26,13 @@ else
 
 @code {
     private JobStatus? status;
+    private SystemHealthStatus? healthStatus;
     private string? signalRHubUrl;
 
     protected override async Task OnInitializedAsync()
     {
         status = await Api.GetStatusAsync();
+        healthStatus = await Api.GetHealthAsync();
         signalRHubUrl = Configuration["SignalR:HubUrl"];
     }
 }
