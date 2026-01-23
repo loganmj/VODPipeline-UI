@@ -5,7 +5,16 @@
 
 <h3>Configuration Editor</h3>
 
-@if (config == null)
+@if (errorMessage != null)
+{
+    <div class="error-message">
+        <p>⚠️ Error loading configuration: @errorMessage</p>
+        <div class="editor-actions">
+            <a href="/" class="btn-back" aria-label="Return to the pipeline dashboard">Back to Dashboard</a>
+        </div>
+    </div>
+}
+else if (config == null)
 {
     <p>Loading configuration...</p>
 }
@@ -37,16 +46,24 @@ else
         </div>
         
         <div class="editor-actions">
-            <a href="/" class="btn-back">Back to Dashboard</a>
+            <a href="/" class="btn-back" aria-label="Return to the pipeline dashboard">Back to Dashboard</a>
         </div>
     </div>
 }
 
 @code {
     private PipelineConfig? config;
+    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
-        config = await Api.GetConfigAsync();
+        try
+        {
+            config = await Api.GetConfigAsync();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
     }
 }

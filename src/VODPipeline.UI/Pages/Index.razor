@@ -6,14 +6,20 @@
 
 <h3>Pipeline Dashboard</h3>
 
-@if (status == null || config == null)
+@if (errorMessage != null)
+{
+    <div class="error-message">
+        <p>⚠️ Error loading dashboard: @errorMessage</p>
+    </div>
+}
+else if (status == null || config == null)
 {
     <p>Loading...</p>
 }
 else
 {
     <CurrentJob JobStatus="@status" HubUrl="@signalRHubUrl" />
-    <div style="margin-top: 2rem;">
+    <div class="section-spacing">
         <ConfigSummary Config="@config" HubUrl="@signalRHubUrl" />
     </div>
 }
@@ -22,11 +28,19 @@ else
     private JobStatus? status;
     private PipelineConfig? config;
     private string? signalRHubUrl;
+    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
-        status = await Api.GetStatusAsync();
-        config = await Api.GetConfigAsync();
-        signalRHubUrl = Configuration["SignalR:HubUrl"];
+        try
+        {
+            status = await Api.GetStatusAsync();
+            config = await Api.GetConfigAsync();
+            signalRHubUrl = Configuration["SignalR:HubUrl"];
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
     }
 }
