@@ -1,7 +1,7 @@
 @page "/config"
 @using VODPipeline.UI.Data
 @using VODPipeline.UI.Services
-@inject VODAPIClient Api
+@inject ConfigService ConfigService
 @inject IConfiguration Configuration
 
 <h3>Configuration Editor</h3>
@@ -33,7 +33,7 @@ else
     {
         try
         {
-            config = await Api.GetConfigAsync();
+            config = await ConfigService.GetConfigAsync();
             signalRHubUrl = Configuration["SignalR:HubUrl"];
         }
         catch (Exception ex)
@@ -47,7 +47,7 @@ else
         // Reload configuration after update
         try
         {
-            config = await Api.GetConfigAsync();
+            config = await ConfigService.GetConfigAsync();
             StateHasChanged();
         }
         catch (Exception ex)

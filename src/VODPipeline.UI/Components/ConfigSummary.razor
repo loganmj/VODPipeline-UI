@@ -3,7 +3,7 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Logging
 @implements IAsyncDisposable
-@inject VODAPIClient Api
+@inject ConfigService ConfigService
 @inject ILogger<ConfigSummary> Logger
 
 <div class="config-summary">
@@ -117,7 +117,7 @@
             isRefreshing = true;
             isLoading = true;
             hasLoadError = false;
-            Config = await Api.GetConfigAsync();
+            Config = await ConfigService.GetConfigAsync();
         }
         catch (Exception ex)
         {

@@ -4,7 +4,7 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Logging
 @implements IAsyncDisposable
-@inject VODAPIClient Api
+@inject JobService JobService
 @inject NavigationManager NavigationManager
 @inject ILogger<RecentJobs> Logger
 
@@ -137,7 +137,7 @@
             isRefreshing = true;
             isLoading = true;
             hasLoadError = false;
-            jobs = await Api.GetRecentJobsAsync(MaxJobs);
+            jobs = await JobService.GetJobsAsync(MaxJobs);
         }
         catch (Exception ex)
         {

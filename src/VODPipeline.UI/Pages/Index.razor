@@ -1,7 +1,8 @@
 ﻿@page "/"
 @using VODPipeline.UI.Data
 @using VODPipeline.UI.Services
-@inject VODAPIClient Api
+@inject JobService JobService
+@inject ConfigService ConfigService
 @inject IConfiguration Configuration
 
 <h3>Pipeline Dashboard</h3>
@@ -35,7 +36,7 @@ else
     {
         try
         {
-            status = await Api.GetStatusAsync();
+            status = await JobService.GetStatusAsync();
             signalRHubUrl = Configuration["SignalR:HubUrl"];
         }
         catch (Exception ex)

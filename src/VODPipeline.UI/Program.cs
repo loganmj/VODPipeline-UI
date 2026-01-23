@@ -5,9 +5,22 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
-builder.Services.AddHttpClient<VODAPIClient>(client =>
+// Configure base address for VODPipeline-API
+var vodApiBaseUrl = new Uri("http://placeholder-uri.local:1234/");
+
+builder.Services.AddHttpClient<JobService>(client =>
 {
-    client.BaseAddress = new Uri("http://placeholder-uri.local:1234/");
+    client.BaseAddress = vodApiBaseUrl;
+});
+
+builder.Services.AddHttpClient<ConfigService>(client =>
+{
+    client.BaseAddress = vodApiBaseUrl;
+});
+
+builder.Services.AddHttpClient<HealthService>(client =>
+{
+    client.BaseAddress = vodApiBaseUrl;
 });
 builder.Services.AddSingleton<SignalRConnectionService>();
 

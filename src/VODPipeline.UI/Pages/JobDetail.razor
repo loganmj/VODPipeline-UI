@@ -5,7 +5,7 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Logging
 @implements IAsyncDisposable
-@inject VODAPIClient Api
+@inject JobService JobService
 @inject IConfiguration Configuration
 @inject NavigationManager NavigationManager
 @inject ILogger<JobDetail> Logger
@@ -274,8 +274,8 @@
             errorMessage = null;
 
             // Load job detail and events in parallel
-            var jobDetailTask = Api.GetJobDetailAsync(JobId!);
-            var jobEventsTask = Api.GetJobEventsAsync(JobId!);
+            var jobDetailTask = JobService.GetJobDetailAsync(JobId!);
+            var jobEventsTask = JobService.GetJobEventsAsync(JobId!);
 
             await Task.WhenAll(jobDetailTask, jobEventsTask);
 
