@@ -353,7 +353,7 @@ public class CurrentJobViewModelTests
 
         var update = new JobStatus
         {
-            JobId = null, // No JobId in update - treated as "update current job"
+            JobId = null, // Null JobId parses to Guid.Empty, allowing update to proceed
             Stage = "Processing",
             Percent = 75,
             IsRunning = true,
