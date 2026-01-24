@@ -174,7 +174,7 @@ public class CurrentJobViewModelTests
     }
 
     [Fact]
-    public void FromJobStatus_ClampsPercentToValidRange()
+    public void FromJobStatus_ClampsPercentToValidRange_UpperBound()
     {
         // Arrange
         var jobId = Guid.NewGuid();
@@ -193,6 +193,28 @@ public class CurrentJobViewModelTests
 
         // Assert
         Assert.Equal(100, viewModel.Percent);
+    }
+
+    [Fact]
+    public void FromJobStatus_ClampsPercentToValidRange_LowerBound()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var jobStatus = new JobStatus
+        {
+            JobId = jobId.ToString(),
+            FileName = "test.mp4",
+            Stage = "Downloading",
+            Percent = -50, // Negative value
+            IsRunning = true,
+            Timestamp = DateTime.UtcNow
+        };
+
+        // Act
+        var viewModel = CurrentJobViewModel.FromJobStatus(jobStatus);
+
+        // Assert
+        Assert.Equal(0, viewModel.Percent);
     }
 
     [Fact]
@@ -314,7 +336,7 @@ public class CurrentJobViewModelTests
     }
 
     [Fact]
-    public void ApplyUpdate_WithEmptyJobIdInUpdate_UpdatesFields()
+    public void ApplyUpdate_WithNullJobIdInUpdate_UpdatesFieldsRegardlessOfJobId()
     {
         // Arrange
         var jobId = Guid.NewGuid();
@@ -331,7 +353,7 @@ public class CurrentJobViewModelTests
 
         var update = new JobStatus
         {
-            JobId = null, // No JobId in update
+            JobId = null, // No JobId in update - treated as "update current job"
             Stage = "Processing",
             Percent = 75,
             IsRunning = true,
@@ -414,7 +436,7 @@ public class CurrentJobViewModelTests
     }
 
     [Fact]
-    public void ApplyUpdate_ClampsPercentToValidRange()
+    public void ApplyUpdate_ClampsPercentToValidRange_UpperBound()
     {
         // Arrange
         var jobId = Guid.NewGuid();
@@ -443,6 +465,38 @@ public class CurrentJobViewModelTests
 
         // Assert
         Assert.Equal(100, viewModel.Percent);
+    }
+
+    [Fact]
+    public void ApplyUpdate_ClampsPercentToValidRange_LowerBound()
+    {
+        // Arrange
+        var jobId = Guid.NewGuid();
+        var jobStatus = new JobStatus
+        {
+            JobId = jobId.ToString(),
+            FileName = "test.mp4",
+            Stage = "Downloading",
+            Percent = 50,
+            IsRunning = true,
+            Timestamp = DateTime.UtcNow
+        };
+        var viewModel = CurrentJobViewModel.FromJobStatus(jobStatus);
+
+        var update = new JobStatus
+        {
+            JobId = jobId.ToString(),
+            Stage = "Processing",
+            Percent = -20, // Negative value
+            IsRunning = true,
+            LastUpdated = DateTime.UtcNow
+        };
+
+        // Act
+        viewModel.ApplyUpdate(update);
+
+        // Assert
+        Assert.Equal(0, viewModel.Percent);
     }
 
     [Fact]
