@@ -80,8 +80,15 @@ namespace VODPipeline.UI.Components
 
             var jobId = ParseJobId(jobStatus.JobId);
             
-            // Use Timestamp as both StartedAt and LastUpdatedAt initially
-            var timestamp = jobStatus.Timestamp ?? DateTime.UtcNow;
+            // Validate that JobId was successfully parsed
+            if (jobId == Guid.Empty)
+                throw new ArgumentException("JobStatus.JobId must be a valid GUID", nameof(jobStatus));
+            
+            // Use Timestamp for StartedAt (job start time)
+            var startedAt = jobStatus.Timestamp ?? DateTime.UtcNow;
+            
+            // Use LastUpdated for LastUpdatedAt if available, otherwise fall back to Timestamp
+            var lastUpdatedAt = jobStatus.LastUpdated ?? startedAt;
             
             return new CurrentJobViewModel(
                 jobId: jobId,
@@ -89,8 +96,8 @@ namespace VODPipeline.UI.Components
                 stage: jobStatus.Stage ?? string.Empty,
                 percent: jobStatus.Percent ?? 0,
                 isRunning: jobStatus.IsRunning,
-                startedAt: timestamp,
-                lastUpdatedAt: timestamp,
+                startedAt: startedAt,
+                lastUpdatedAt: lastUpdatedAt,
                 estimatedRemaining: jobStatus.EstimatedTimeRemaining
             );
         }
@@ -114,6 +121,9 @@ namespace VODPipeline.UI.Components
             // Update core status fields
             Stage = update.Stage ?? Stage;
             Percent = Math.Clamp(update.Percent ?? Percent, 0, 100);
+            // Note: IsRunning is assigned directly from update.IsRunning because it is a non-nullable bool in the DTO.
+            // In partial updates, a missing IsRunning field would deserialize to false and incorrectly stop the job.
+            // Consider using a separate update DTO with nullable fields if partial updates are required.
             IsRunning = update.IsRunning;
 
             // Update timing - prioritize LastUpdated, fallback to Timestamp, then UtcNow
@@ -137,6 +147,8 @@ namespace VODPipeline.UI.Components
         {
             ErrorMessage = errorMessage;
             IsRunning = false;
+            // Clear any stale ETA when entering an error state
+            EstimatedRemaining = null;
         }
 
         /// <summary>
