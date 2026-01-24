@@ -60,8 +60,8 @@ namespace VODPipeline.UI.Components
             string? errorMessage = null)
         {
             JobId = jobId;
-            FileName = fileName ?? string.Empty;
-            Stage = stage ?? string.Empty;
+            FileName = fileName;
+            Stage = stage;
             Percent = Math.Clamp(percent, 0, 100);
             IsRunning = isRunning;
             StartedAt = startedAt;
@@ -103,19 +103,20 @@ namespace VODPipeline.UI.Components
         }
 
         /// <summary>
-        /// Applies an update from a JobStatus DTO received via SignalR
+        /// Applies an update from a JobStatus DTO received via SignalR.
+        /// Returns true if the update was applied, false if it was ignored (e.g., JobId mismatch).
         /// </summary>
-        public void ApplyUpdate(JobStatus update)
+        public bool ApplyUpdate(JobStatus update)
         {
             if (update == null)
                 throw new ArgumentNullException(nameof(update));
 
-            // Verify this update is for the same job
+            // Verify this update is for the same job - ignore mismatched updates
             var updateJobId = ParseJobId(update.JobId);
             if (updateJobId != Guid.Empty && updateJobId != JobId)
             {
-                throw new InvalidOperationException(
-                    $"Cannot apply update for job {updateJobId} to view model for job {JobId}");
+                // Silently ignore updates for different jobs to avoid exceptions from out-of-order/stray messages
+                return false;
             }
 
             // Update core status fields
@@ -138,6 +139,8 @@ namespace VODPipeline.UI.Components
                 IsRunning = false;
                 EstimatedRemaining = TimeSpan.Zero;
             }
+
+            return true;
         }
 
         /// <summary>
