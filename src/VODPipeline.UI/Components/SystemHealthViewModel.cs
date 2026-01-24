@@ -60,11 +60,11 @@ namespace VODPipeline.UI.Components
             if (healthStatus == null)
                 throw new ArgumentNullException(nameof(healthStatus));
 
-            // Convert ComponentHealth to SubsystemHealth
-            var api = ConvertToSubsystemHealth(healthStatus.API);
-            var function = ConvertToSubsystemHealth(healthStatus.Function);
-            var database = ConvertToSubsystemHealth(healthStatus.Database);
-            var fileShare = ConvertToSubsystemHealth(healthStatus.FileShare);
+            // Copy subsystem health data
+            var api = CopySubsystemHealth(healthStatus.API);
+            var function = CopySubsystemHealth(healthStatus.Function);
+            var database = CopySubsystemHealth(healthStatus.Database);
+            var fileShare = CopySubsystemHealth(healthStatus.FileShare);
             
             var lastUpdatedAt = healthStatus.LastUpdated ?? DateTime.UtcNow;
 
@@ -81,12 +81,12 @@ namespace VODPipeline.UI.Components
         /// Updates the API subsystem health status.
         /// This method is called when receiving apiHeartbeat SignalR events.
         /// </summary>
-        public void UpdateApiHealth(ComponentHealth componentHealth)
+        public void UpdateApiHealth(SubsystemHealth subsystemHealth)
         {
-            if (componentHealth == null)
-                throw new ArgumentNullException(nameof(componentHealth));
+            if (subsystemHealth == null)
+                throw new ArgumentNullException(nameof(subsystemHealth));
 
-            Api = ConvertToSubsystemHealth(componentHealth);
+            Api = CopySubsystemHealth(subsystemHealth);
             LastUpdatedAt = DateTime.UtcNow;
             IsHealthy = CalculateIsHealthy();
         }
@@ -95,12 +95,12 @@ namespace VODPipeline.UI.Components
         /// Updates the Function subsystem health status.
         /// This method is called when receiving functionHeartbeat SignalR events.
         /// </summary>
-        public void UpdateFunctionHealth(ComponentHealth componentHealth)
+        public void UpdateFunctionHealth(SubsystemHealth subsystemHealth)
         {
-            if (componentHealth == null)
-                throw new ArgumentNullException(nameof(componentHealth));
+            if (subsystemHealth == null)
+                throw new ArgumentNullException(nameof(subsystemHealth));
 
-            Function = ConvertToSubsystemHealth(componentHealth);
+            Function = CopySubsystemHealth(subsystemHealth);
             LastUpdatedAt = DateTime.UtcNow;
             IsHealthy = CalculateIsHealthy();
         }
@@ -109,12 +109,12 @@ namespace VODPipeline.UI.Components
         /// Updates the Database subsystem health status.
         /// This method is called when receiving dbStatusChanged SignalR events.
         /// </summary>
-        public void UpdateDatabaseHealth(ComponentHealth componentHealth)
+        public void UpdateDatabaseHealth(SubsystemHealth subsystemHealth)
         {
-            if (componentHealth == null)
-                throw new ArgumentNullException(nameof(componentHealth));
+            if (subsystemHealth == null)
+                throw new ArgumentNullException(nameof(subsystemHealth));
 
-            Database = ConvertToSubsystemHealth(componentHealth);
+            Database = CopySubsystemHealth(subsystemHealth);
             LastUpdatedAt = DateTime.UtcNow;
             IsHealthy = CalculateIsHealthy();
         }
@@ -123,12 +123,12 @@ namespace VODPipeline.UI.Components
         /// Updates the FileShare subsystem health status.
         /// This method is called when receiving fileShareStatusChanged SignalR events.
         /// </summary>
-        public void UpdateFileShareHealth(ComponentHealth componentHealth)
+        public void UpdateFileShareHealth(SubsystemHealth subsystemHealth)
         {
-            if (componentHealth == null)
-                throw new ArgumentNullException(nameof(componentHealth));
+            if (subsystemHealth == null)
+                throw new ArgumentNullException(nameof(subsystemHealth));
 
-            FileShare = ConvertToSubsystemHealth(componentHealth);
+            FileShare = CopySubsystemHealth(subsystemHealth);
             LastUpdatedAt = DateTime.UtcNow;
             IsHealthy = CalculateIsHealthy();
         }
@@ -142,10 +142,10 @@ namespace VODPipeline.UI.Components
             if (healthStatus == null)
                 throw new ArgumentNullException(nameof(healthStatus));
 
-            Api = ConvertToSubsystemHealth(healthStatus.API);
-            Function = ConvertToSubsystemHealth(healthStatus.Function);
-            Database = ConvertToSubsystemHealth(healthStatus.Database);
-            FileShare = ConvertToSubsystemHealth(healthStatus.FileShare);
+            Api = CopySubsystemHealth(healthStatus.API);
+            Function = CopySubsystemHealth(healthStatus.Function);
+            Database = CopySubsystemHealth(healthStatus.Database);
+            FileShare = CopySubsystemHealth(healthStatus.FileShare);
             LastUpdatedAt = healthStatus.LastUpdated ?? DateTime.UtcNow;
             IsHealthy = CalculateIsHealthy();
         }
@@ -161,16 +161,15 @@ namespace VODPipeline.UI.Components
         }
 
         /// <summary>
-        /// Converts a ComponentHealth to SubsystemHealth.
-        /// Creates a new instance to ensure immutability.
+        /// Creates a copy of a SubsystemHealth to ensure immutability.
         /// </summary>
-        private static SubsystemHealth ConvertToSubsystemHealth(ComponentHealth componentHealth)
+        private static SubsystemHealth CopySubsystemHealth(SubsystemHealth subsystemHealth)
         {
             return new SubsystemHealth
             {
-                Status = componentHealth.Status,
-                LastHeartbeat = componentHealth.LastHeartbeat,
-                Message = componentHealth.Message
+                Status = subsystemHealth.Status,
+                LastHeartbeat = subsystemHealth.LastHeartbeat,
+                Message = subsystemHealth.Message
             };
         }
     }

@@ -224,24 +224,24 @@
             });
 
             // Subscribe to individual component health events
-            hubConnection.On<ComponentHealth>("functionHeartbeat", async (componentHealth) =>
+            hubConnection.On<SubsystemHealth>("functionHeartbeat", async (subsystemHealth) =>
             {
-                await HandleComponentHealthUpdate(componentHealth, ComponentNameFunction, "functionHeartbeat");
+                await HandleComponentHealthUpdate(subsystemHealth, ComponentNameFunction, "functionHeartbeat");
             });
 
-            hubConnection.On<ComponentHealth>("apiHeartbeat", async (componentHealth) =>
+            hubConnection.On<SubsystemHealth>("apiHeartbeat", async (subsystemHealth) =>
             {
-                await HandleComponentHealthUpdate(componentHealth, ComponentNameAPI, "apiHeartbeat");
+                await HandleComponentHealthUpdate(subsystemHealth, ComponentNameAPI, "apiHeartbeat");
             });
 
-            hubConnection.On<ComponentHealth>("dbStatusChanged", async (componentHealth) =>
+            hubConnection.On<SubsystemHealth>("dbStatusChanged", async (subsystemHealth) =>
             {
-                await HandleComponentHealthUpdate(componentHealth, ComponentNameDatabase, "dbStatusChanged");
+                await HandleComponentHealthUpdate(subsystemHealth, ComponentNameDatabase, "dbStatusChanged");
             });
 
-            hubConnection.On<ComponentHealth>("fileShareStatusChanged", async (componentHealth) =>
+            hubConnection.On<SubsystemHealth>("fileShareStatusChanged", async (subsystemHealth) =>
             {
-                await HandleComponentHealthUpdate(componentHealth, ComponentNameFileShare, "fileShareStatusChanged");
+                await HandleComponentHealthUpdate(subsystemHealth, ComponentNameFileShare, "fileShareStatusChanged");
             });
 
             await hubConnection.StartAsync();
@@ -269,7 +269,7 @@
         }
     }
 
-    private async Task HandleComponentHealthUpdate(ComponentHealth componentHealth, string componentName, string eventName)
+    private async Task HandleComponentHealthUpdate(SubsystemHealth subsystemHealth, string componentName, string eventName)
     {
         try
         {
@@ -283,16 +283,16 @@
                 switch (componentName)
                 {
                     case ComponentNameFunction:
-                        HealthStatus.Function = componentHealth;
+                        HealthStatus.Function = subsystemHealth;
                         break;
                     case ComponentNameAPI:
-                        HealthStatus.API = componentHealth;
+                        HealthStatus.API = subsystemHealth;
                         break;
                     case ComponentNameDatabase:
-                        HealthStatus.Database = componentHealth;
+                        HealthStatus.Database = subsystemHealth;
                         break;
                     case ComponentNameFileShare:
-                        HealthStatus.FileShare = componentHealth;
+                        HealthStatus.FileShare = subsystemHealth;
                         break;
                     default:
                         Logger.LogWarning("Received update for unknown component: {ComponentName}", componentName);

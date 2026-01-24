@@ -1,9 +1,11 @@
 namespace VODPipeline.UI.Data
 {
-    public class ComponentHealth : IComponentHealth
+    /// <summary>
+    /// Legacy class for component health.
+    /// Use SubsystemHealth instead.
+    /// </summary>
+    [Obsolete("Use SubsystemHealth instead. ComponentHealth is maintained for backward compatibility.")]
+    public class ComponentHealth : SubsystemHealth
     {
-        public HealthStatus Status { get; set; } = HealthStatus.Unknown;
-        public DateTime? LastHeartbeat { get; set; }
-        public string? Message { get; set; }
     }
 }

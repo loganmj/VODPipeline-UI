@@ -2,10 +2,10 @@ namespace VODPipeline.UI.Data
 {
     public interface ISystemHealthStatus
     {
-        ComponentHealth Function { get; }
-        ComponentHealth API { get; }
-        ComponentHealth Database { get; }
-        ComponentHealth FileShare { get; }
+        SubsystemHealth Function { get; }
+        SubsystemHealth API { get; }
+        SubsystemHealth Database { get; }
+        SubsystemHealth FileShare { get; }
         DateTime? LastUpdated { get; }
     }
 }

@@ -13,25 +13,25 @@ public class SystemHealthViewModelTests
         // Arrange
         var healthStatus = new SystemHealthStatus
         {
-            API = new ComponentHealth
+            API = new SubsystemHealth
             {
                 Status = HealthStatus.Healthy,
                 LastHeartbeat = DateTime.UtcNow,
                 Message = "API is running"
             },
-            Function = new ComponentHealth
+            Function = new SubsystemHealth
             {
                 Status = HealthStatus.Healthy,
                 LastHeartbeat = DateTime.UtcNow,
                 Message = "Function is running"
             },
-            Database = new ComponentHealth
+            Database = new SubsystemHealth
             {
                 Status = HealthStatus.Healthy,
                 LastHeartbeat = DateTime.UtcNow,
                 Message = "Database is running"
             },
-            FileShare = new ComponentHealth
+            FileShare = new SubsystemHealth
             {
                 Status = HealthStatus.Healthy,
                 LastHeartbeat = DateTime.UtcNow,
@@ -68,10 +68,10 @@ public class SystemHealthViewModelTests
         var before = DateTime.UtcNow;
         var healthStatus = new SystemHealthStatus
         {
-            API = new ComponentHealth { Status = HealthStatus.Healthy },
-            Function = new ComponentHealth { Status = HealthStatus.Healthy },
-            Database = new ComponentHealth { Status = HealthStatus.Healthy },
-            FileShare = new ComponentHealth { Status = HealthStatus.Healthy },
+            API = new SubsystemHealth { Status = HealthStatus.Healthy },
+            Function = new SubsystemHealth { Status = HealthStatus.Healthy },
+            Database = new SubsystemHealth { Status = HealthStatus.Healthy },
+            FileShare = new SubsystemHealth { Status = HealthStatus.Healthy },
             LastUpdated = null
         };
 
@@ -89,10 +89,10 @@ public class SystemHealthViewModelTests
         // Arrange
         var healthStatus = new SystemHealthStatus
         {
-            API = new ComponentHealth { Status = HealthStatus.Healthy },
-            Function = new ComponentHealth { Status = HealthStatus.Degraded }, // Degraded
-            Database = new ComponentHealth { Status = HealthStatus.Healthy },
-            FileShare = new ComponentHealth { Status = HealthStatus.Healthy },
+            API = new SubsystemHealth { Status = HealthStatus.Healthy },
+            Function = new SubsystemHealth { Status = HealthStatus.Degraded }, // Degraded
+            Database = new SubsystemHealth { Status = HealthStatus.Healthy },
+            FileShare = new SubsystemHealth { Status = HealthStatus.Healthy },
             LastUpdated = DateTime.UtcNow
         };
 
@@ -110,10 +110,10 @@ public class SystemHealthViewModelTests
         // Arrange
         var healthStatus = new SystemHealthStatus
         {
-            API = new ComponentHealth { Status = HealthStatus.Healthy },
-            Function = new ComponentHealth { Status = HealthStatus.Healthy },
-            Database = new ComponentHealth { Status = HealthStatus.Unhealthy }, // Unhealthy
-            FileShare = new ComponentHealth { Status = HealthStatus.Healthy },
+            API = new SubsystemHealth { Status = HealthStatus.Healthy },
+            Function = new SubsystemHealth { Status = HealthStatus.Healthy },
+            Database = new SubsystemHealth { Status = HealthStatus.Unhealthy }, // Unhealthy
+            FileShare = new SubsystemHealth { Status = HealthStatus.Healthy },
             LastUpdated = DateTime.UtcNow
         };
 
@@ -131,10 +131,10 @@ public class SystemHealthViewModelTests
         // Arrange
         var healthStatus = new SystemHealthStatus
         {
-            API = new ComponentHealth { Status = HealthStatus.Healthy },
-            Function = new ComponentHealth { Status = HealthStatus.Healthy },
-            Database = new ComponentHealth { Status = HealthStatus.Healthy },
-            FileShare = new ComponentHealth { Status = HealthStatus.Unknown }, // Unknown
+            API = new SubsystemHealth { Status = HealthStatus.Healthy },
+            Function = new SubsystemHealth { Status = HealthStatus.Healthy },
+            Database = new SubsystemHealth { Status = HealthStatus.Healthy },
+            FileShare = new SubsystemHealth { Status = HealthStatus.Unknown }, // Unknown
             LastUpdated = DateTime.UtcNow
         };
 
@@ -152,10 +152,10 @@ public class SystemHealthViewModelTests
         // Arrange
         var healthStatus = new SystemHealthStatus
         {
-            API = new ComponentHealth { Status = HealthStatus.Healthy },
-            Function = new ComponentHealth { Status = HealthStatus.Healthy },
-            Database = new ComponentHealth { Status = HealthStatus.Healthy },
-            FileShare = new ComponentHealth { Status = HealthStatus.Healthy },
+            API = new SubsystemHealth { Status = HealthStatus.Healthy },
+            Function = new SubsystemHealth { Status = HealthStatus.Healthy },
+            Database = new SubsystemHealth { Status = HealthStatus.Healthy },
+            FileShare = new SubsystemHealth { Status = HealthStatus.Healthy },
             LastUpdated = DateTime.UtcNow
         };
 
@@ -179,7 +179,7 @@ public class SystemHealthViewModelTests
         var viewModel = SystemHealthViewModel.FromSystemHealthStatus(healthStatus);
         var originalLastUpdated = viewModel.LastUpdatedAt;
 
-        var updatedApiHealth = new ComponentHealth
+        var updatedApiHealth = new SubsystemHealth
         {
             Status = HealthStatus.Degraded,
             LastHeartbeat = DateTime.UtcNow,
@@ -220,7 +220,7 @@ public class SystemHealthViewModelTests
         var viewModel = SystemHealthViewModel.FromSystemHealthStatus(healthStatus);
         var originalLastUpdated = viewModel.LastUpdatedAt;
 
-        var updatedFunctionHealth = new ComponentHealth
+        var updatedFunctionHealth = new SubsystemHealth
         {
             Status = HealthStatus.Unhealthy,
             LastHeartbeat = DateTime.UtcNow.AddMinutes(-5),
@@ -261,7 +261,7 @@ public class SystemHealthViewModelTests
         var viewModel = SystemHealthViewModel.FromSystemHealthStatus(healthStatus);
         var originalLastUpdated = viewModel.LastUpdatedAt;
 
-        var updatedDatabaseHealth = new ComponentHealth
+        var updatedDatabaseHealth = new SubsystemHealth
         {
             Status = HealthStatus.Degraded,
             LastHeartbeat = DateTime.UtcNow,
@@ -302,7 +302,7 @@ public class SystemHealthViewModelTests
         var viewModel = SystemHealthViewModel.FromSystemHealthStatus(healthStatus);
         var originalLastUpdated = viewModel.LastUpdatedAt;
 
-        var updatedFileShareHealth = new ComponentHealth
+        var updatedFileShareHealth = new SubsystemHealth
         {
             Status = HealthStatus.Unhealthy,
             LastHeartbeat = DateTime.UtcNow,
@@ -345,25 +345,25 @@ public class SystemHealthViewModelTests
 
         var updatedHealthStatus = new SystemHealthStatus
         {
-            API = new ComponentHealth
+            API = new SubsystemHealth
             {
                 Status = HealthStatus.Degraded,
                 LastHeartbeat = DateTime.UtcNow,
                 Message = "API slow"
             },
-            Function = new ComponentHealth
+            Function = new SubsystemHealth
             {
                 Status = HealthStatus.Unhealthy,
                 LastHeartbeat = DateTime.UtcNow.AddMinutes(-5),
                 Message = "Function down"
             },
-            Database = new ComponentHealth
+            Database = new SubsystemHealth
             {
                 Status = HealthStatus.Healthy,
                 LastHeartbeat = DateTime.UtcNow,
                 Message = "Database OK"
             },
-            FileShare = new ComponentHealth
+            FileShare = new SubsystemHealth
             {
                 Status = HealthStatus.Degraded,
                 LastHeartbeat = DateTime.UtcNow,
@@ -410,10 +410,10 @@ public class SystemHealthViewModelTests
 
         var updatedHealthStatus = new SystemHealthStatus
         {
-            API = new ComponentHealth { Status = HealthStatus.Healthy },
-            Function = new ComponentHealth { Status = HealthStatus.Healthy },
-            Database = new ComponentHealth { Status = HealthStatus.Healthy },
-            FileShare = new ComponentHealth { Status = HealthStatus.Healthy },
+            API = new SubsystemHealth { Status = HealthStatus.Healthy },
+            Function = new SubsystemHealth { Status = HealthStatus.Healthy },
+            Database = new SubsystemHealth { Status = HealthStatus.Healthy },
+            FileShare = new SubsystemHealth { Status = HealthStatus.Healthy },
             LastUpdated = null
         };
 
@@ -441,7 +441,7 @@ public class SystemHealthViewModelTests
         Assert.False(viewModel.HasErrors);
 
         // Act - Function becomes degraded
-        viewModel.UpdateFunctionHealth(new ComponentHealth
+        viewModel.UpdateFunctionHealth(new SubsystemHealth
         {
             Status = HealthStatus.Degraded,
             LastHeartbeat = DateTime.UtcNow,
@@ -454,7 +454,7 @@ public class SystemHealthViewModelTests
         Assert.Equal(HealthStatus.Degraded, viewModel.Function.Status);
 
         // Act - API becomes unhealthy
-        viewModel.UpdateApiHealth(new ComponentHealth
+        viewModel.UpdateApiHealth(new SubsystemHealth
         {
             Status = HealthStatus.Unhealthy,
             LastHeartbeat = DateTime.UtcNow.AddMinutes(-10),
@@ -467,7 +467,7 @@ public class SystemHealthViewModelTests
         Assert.Equal(HealthStatus.Degraded, viewModel.Function.Status);
 
         // Act - Function recovers
-        viewModel.UpdateFunctionHealth(new ComponentHealth
+        viewModel.UpdateFunctionHealth(new SubsystemHealth
         {
             Status = HealthStatus.Healthy,
             LastHeartbeat = DateTime.UtcNow,
@@ -480,7 +480,7 @@ public class SystemHealthViewModelTests
         Assert.Equal(HealthStatus.Unhealthy, viewModel.Api.Status);
 
         // Act - API recovers
-        viewModel.UpdateApiHealth(new ComponentHealth
+        viewModel.UpdateApiHealth(new SubsystemHealth
         {
             Status = HealthStatus.Healthy,
             LastHeartbeat = DateTime.UtcNow,
@@ -500,13 +500,13 @@ public class SystemHealthViewModelTests
         var viewModel = SystemHealthViewModel.FromSystemHealthStatus(initialHealthStatus);
 
         // Act - Update individual subsystems
-        viewModel.UpdateApiHealth(new ComponentHealth
+        viewModel.UpdateApiHealth(new SubsystemHealth
         {
             Status = HealthStatus.Degraded,
             LastHeartbeat = DateTime.UtcNow,
             Message = "API slow"
         });
-        viewModel.UpdateFunctionHealth(new ComponentHealth
+        viewModel.UpdateFunctionHealth(new SubsystemHealth
         {
             Status = HealthStatus.Unhealthy,
             LastHeartbeat = DateTime.UtcNow,
@@ -520,10 +520,10 @@ public class SystemHealthViewModelTests
         // Act - Apply full update that overrides everything
         var fullUpdate = new SystemHealthStatus
         {
-            API = new ComponentHealth { Status = HealthStatus.Healthy, Message = "All good" },
-            Function = new ComponentHealth { Status = HealthStatus.Healthy, Message = "All good" },
-            Database = new ComponentHealth { Status = HealthStatus.Healthy, Message = "All good" },
-            FileShare = new ComponentHealth { Status = HealthStatus.Healthy, Message = "All good" },
+            API = new SubsystemHealth { Status = HealthStatus.Healthy, Message = "All good" },
+            Function = new SubsystemHealth { Status = HealthStatus.Healthy, Message = "All good" },
+            Database = new SubsystemHealth { Status = HealthStatus.Healthy, Message = "All good" },
+            FileShare = new SubsystemHealth { Status = HealthStatus.Healthy, Message = "All good" },
             LastUpdated = DateTime.UtcNow
         };
         viewModel.ApplyFullUpdate(fullUpdate);
@@ -544,25 +544,25 @@ public class SystemHealthViewModelTests
     {
         return new SystemHealthStatus
         {
-            API = new ComponentHealth
+            API = new SubsystemHealth
             {
                 Status = HealthStatus.Healthy,
                 LastHeartbeat = DateTime.UtcNow,
                 Message = "API is healthy"
             },
-            Function = new ComponentHealth
+            Function = new SubsystemHealth
             {
                 Status = HealthStatus.Healthy,
                 LastHeartbeat = DateTime.UtcNow,
                 Message = "Function is healthy"
             },
-            Database = new ComponentHealth
+            Database = new SubsystemHealth
             {
                 Status = HealthStatus.Healthy,
                 LastHeartbeat = DateTime.UtcNow,
                 Message = "Database is healthy"
             },
-            FileShare = new ComponentHealth
+            FileShare = new SubsystemHealth
             {
                 Status = HealthStatus.Healthy,
                 LastHeartbeat = DateTime.UtcNow,
