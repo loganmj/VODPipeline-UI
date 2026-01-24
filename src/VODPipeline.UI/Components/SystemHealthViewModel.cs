@@ -156,10 +156,8 @@ namespace VODPipeline.UI.Components
         /// </summary>
         private bool CalculateIsHealthy()
         {
-            return Api.Status == HealthStatus.Healthy &&
-                   Function.Status == HealthStatus.Healthy &&
-                   Database.Status == HealthStatus.Healthy &&
-                   FileShare.Status == HealthStatus.Healthy;
+            return new[] { Api, Function, Database, FileShare }
+                .All(subsystem => subsystem.Status == HealthStatus.Healthy);
         }
 
         /// <summary>
