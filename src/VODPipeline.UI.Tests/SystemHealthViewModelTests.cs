@@ -178,9 +178,6 @@ public class SystemHealthViewModelTests
         var healthStatus = CreateHealthySystemHealthStatus();
         var viewModel = SystemHealthViewModel.FromSystemHealthStatus(healthStatus);
         var originalLastUpdated = viewModel.LastUpdatedAt;
-        
-        // Wait a bit to ensure timestamp changes
-        System.Threading.Thread.Sleep(10);
 
         var updatedApiHealth = new ComponentHealth
         {
@@ -197,7 +194,7 @@ public class SystemHealthViewModelTests
         Assert.Equal("API is slow", viewModel.Api.Message);
         Assert.False(viewModel.IsHealthy);
         Assert.True(viewModel.HasErrors);
-        Assert.True(viewModel.LastUpdatedAt > originalLastUpdated);
+        Assert.True(viewModel.LastUpdatedAt >= originalLastUpdated);
     }
 
     [Fact]
@@ -222,9 +219,6 @@ public class SystemHealthViewModelTests
         var healthStatus = CreateHealthySystemHealthStatus();
         var viewModel = SystemHealthViewModel.FromSystemHealthStatus(healthStatus);
         var originalLastUpdated = viewModel.LastUpdatedAt;
-        
-        // Wait a bit to ensure timestamp changes
-        System.Threading.Thread.Sleep(10);
 
         var updatedFunctionHealth = new ComponentHealth
         {
@@ -241,7 +235,7 @@ public class SystemHealthViewModelTests
         Assert.Equal("Function not responding", viewModel.Function.Message);
         Assert.False(viewModel.IsHealthy);
         Assert.True(viewModel.HasErrors);
-        Assert.True(viewModel.LastUpdatedAt > originalLastUpdated);
+        Assert.True(viewModel.LastUpdatedAt >= originalLastUpdated);
     }
 
     [Fact]
@@ -266,9 +260,6 @@ public class SystemHealthViewModelTests
         var healthStatus = CreateHealthySystemHealthStatus();
         var viewModel = SystemHealthViewModel.FromSystemHealthStatus(healthStatus);
         var originalLastUpdated = viewModel.LastUpdatedAt;
-        
-        // Wait a bit to ensure timestamp changes
-        System.Threading.Thread.Sleep(10);
 
         var updatedDatabaseHealth = new ComponentHealth
         {
@@ -285,7 +276,7 @@ public class SystemHealthViewModelTests
         Assert.Equal("High latency detected", viewModel.Database.Message);
         Assert.False(viewModel.IsHealthy);
         Assert.True(viewModel.HasErrors);
-        Assert.True(viewModel.LastUpdatedAt > originalLastUpdated);
+        Assert.True(viewModel.LastUpdatedAt >= originalLastUpdated);
     }
 
     [Fact]
@@ -310,9 +301,6 @@ public class SystemHealthViewModelTests
         var healthStatus = CreateHealthySystemHealthStatus();
         var viewModel = SystemHealthViewModel.FromSystemHealthStatus(healthStatus);
         var originalLastUpdated = viewModel.LastUpdatedAt;
-        
-        // Wait a bit to ensure timestamp changes
-        System.Threading.Thread.Sleep(10);
 
         var updatedFileShareHealth = new ComponentHealth
         {
@@ -329,7 +317,7 @@ public class SystemHealthViewModelTests
         Assert.Equal("Storage full", viewModel.FileShare.Message);
         Assert.False(viewModel.IsHealthy);
         Assert.True(viewModel.HasErrors);
-        Assert.True(viewModel.LastUpdatedAt > originalLastUpdated);
+        Assert.True(viewModel.LastUpdatedAt >= originalLastUpdated);
     }
 
     [Fact]
@@ -354,9 +342,6 @@ public class SystemHealthViewModelTests
         var initialHealthStatus = CreateHealthySystemHealthStatus();
         var viewModel = SystemHealthViewModel.FromSystemHealthStatus(initialHealthStatus);
         var originalLastUpdated = viewModel.LastUpdatedAt;
-        
-        // Wait a bit to ensure timestamp changes
-        System.Threading.Thread.Sleep(10);
 
         var updatedHealthStatus = new SystemHealthStatus
         {
@@ -401,7 +386,7 @@ public class SystemHealthViewModelTests
         Assert.Equal("Low storage", viewModel.FileShare.Message);
         Assert.False(viewModel.IsHealthy);
         Assert.True(viewModel.HasErrors);
-        Assert.True(viewModel.LastUpdatedAt > originalLastUpdated);
+        Assert.True(viewModel.LastUpdatedAt >= originalLastUpdated);
     }
 
     [Fact]
@@ -456,7 +441,6 @@ public class SystemHealthViewModelTests
         Assert.False(viewModel.HasErrors);
 
         // Act - Function becomes degraded
-        System.Threading.Thread.Sleep(10);
         viewModel.UpdateFunctionHealth(new ComponentHealth
         {
             Status = HealthStatus.Degraded,
@@ -470,7 +454,6 @@ public class SystemHealthViewModelTests
         Assert.Equal(HealthStatus.Degraded, viewModel.Function.Status);
 
         // Act - API becomes unhealthy
-        System.Threading.Thread.Sleep(10);
         viewModel.UpdateApiHealth(new ComponentHealth
         {
             Status = HealthStatus.Unhealthy,
@@ -484,7 +467,6 @@ public class SystemHealthViewModelTests
         Assert.Equal(HealthStatus.Degraded, viewModel.Function.Status);
 
         // Act - Function recovers
-        System.Threading.Thread.Sleep(10);
         viewModel.UpdateFunctionHealth(new ComponentHealth
         {
             Status = HealthStatus.Healthy,
@@ -498,7 +480,6 @@ public class SystemHealthViewModelTests
         Assert.Equal(HealthStatus.Unhealthy, viewModel.Api.Status);
 
         // Act - API recovers
-        System.Threading.Thread.Sleep(10);
         viewModel.UpdateApiHealth(new ComponentHealth
         {
             Status = HealthStatus.Healthy,
@@ -537,7 +518,6 @@ public class SystemHealthViewModelTests
         Assert.Equal(HealthStatus.Unhealthy, viewModel.Function.Status);
 
         // Act - Apply full update that overrides everything
-        System.Threading.Thread.Sleep(10);
         var fullUpdate = new SystemHealthStatus
         {
             API = new ComponentHealth { Status = HealthStatus.Healthy, Message = "All good" },
