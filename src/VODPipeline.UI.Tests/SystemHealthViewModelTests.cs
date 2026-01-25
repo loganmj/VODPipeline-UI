@@ -186,6 +186,94 @@ public class SystemHealthViewModelTests
         Assert.False(viewModel.HasErrors);
     }
 
+    [Fact]
+    public void FromSystemHealthResponse_WithMissingSubsystemKeys_DefaultsToUnknown()
+    {
+        // Arrange - Only include some subsystems in the dictionary
+        var healthStatus = new SystemHealthResponse
+        {
+            Systems = new Dictionary<string, SystemHealth>
+            {
+                ["API"] = new SystemHealth { Status = HealthStatus.Healthy },
+                // Function is missing
+                ["Database"] = new SystemHealth { Status = HealthStatus.Healthy }
+                // FileShare is missing
+            },
+            LastUpdated = DateTime.UtcNow
+        };
+
+        // Act
+        var viewModel = SystemHealthViewModel.FromSystemHealthResponse(healthStatus);
+
+        // Assert
+        Assert.NotNull(viewModel.Api);
+        Assert.Equal(HealthStatus.Healthy, viewModel.Api.Status);
+        
+        Assert.NotNull(viewModel.Function);
+        Assert.Equal(HealthStatus.Unknown, viewModel.Function.Status); // Should default to Unknown
+        
+        Assert.NotNull(viewModel.Database);
+        Assert.Equal(HealthStatus.Healthy, viewModel.Database.Status);
+        
+        Assert.NotNull(viewModel.FileShare);
+        Assert.Equal(HealthStatus.Unknown, viewModel.FileShare.Status); // Should default to Unknown
+        
+        Assert.False(viewModel.IsHealthy); // Not healthy because Function and FileShare are Unknown
+    }
+
+    [Fact]
+    public void FromSystemHealthResponse_WithNullSystems_CreatesDefaultSubsystems()
+    {
+        // Arrange
+        var healthStatus = new SystemHealthResponse
+        {
+            Systems = null!, // Null dictionary - intentionally testing null handling
+            LastUpdated = DateTime.UtcNow
+        };
+
+        // Act
+        var viewModel = SystemHealthViewModel.FromSystemHealthResponse(healthStatus);
+
+        // Assert - All subsystems should be created with Unknown status
+        Assert.NotNull(viewModel.Api);
+        Assert.Equal(HealthStatus.Unknown, viewModel.Api.Status);
+        
+        Assert.NotNull(viewModel.Function);
+        Assert.Equal(HealthStatus.Unknown, viewModel.Function.Status);
+        
+        Assert.NotNull(viewModel.Database);
+        Assert.Equal(HealthStatus.Unknown, viewModel.Database.Status);
+        
+        Assert.NotNull(viewModel.FileShare);
+        Assert.Equal(HealthStatus.Unknown, viewModel.FileShare.Status);
+        
+        Assert.False(viewModel.IsHealthy);
+    }
+
+    [Fact]
+    public void ApplyFullUpdate_WithNullSystems_CreatesDefaultSubsystems()
+    {
+        // Arrange
+        var initialHealthStatus = CreateHealthySystemHealthResponse();
+        var viewModel = SystemHealthViewModel.FromSystemHealthResponse(initialHealthStatus);
+        
+        var updatedHealthStatus = new SystemHealthResponse
+        {
+            Systems = null!, // Null dictionary - intentionally testing null handling
+            LastUpdated = DateTime.UtcNow
+        };
+
+        // Act
+        viewModel.ApplyFullUpdate(updatedHealthStatus);
+
+        // Assert - All subsystems should be Unknown
+        Assert.Equal(HealthStatus.Unknown, viewModel.Api.Status);
+        Assert.Equal(HealthStatus.Unknown, viewModel.Function.Status);
+        Assert.Equal(HealthStatus.Unknown, viewModel.Database.Status);
+        Assert.Equal(HealthStatus.Unknown, viewModel.FileShare.Status);
+        Assert.False(viewModel.IsHealthy);
+    }
+
     #endregion
 
     #region UpdateApiHealth Tests

@@ -60,11 +60,12 @@ namespace VODPipeline.UI.Components
             if (healthResponse == null)
                 throw new ArgumentNullException(nameof(healthResponse));
 
-            // Extract subsystem health data from dictionary
-            var api = GetOrCreateSystemHealth(healthResponse.Systems, "API");
-            var function = GetOrCreateSystemHealth(healthResponse.Systems, "Function");
-            var database = GetOrCreateSystemHealth(healthResponse.Systems, "Database");
-            var fileShare = GetOrCreateSystemHealth(healthResponse.Systems, "FileShare");
+            // Extract subsystem health data from dictionary, handling null Systems
+            var systems = healthResponse.Systems ?? new Dictionary<string, Data.SystemHealth>();
+            var api = GetOrCreateSystemHealth(systems, "API");
+            var function = GetOrCreateSystemHealth(systems, "Function");
+            var database = GetOrCreateSystemHealth(systems, "Database");
+            var fileShare = GetOrCreateSystemHealth(systems, "FileShare");
             
             var lastUpdatedAt = healthResponse.LastUpdated ?? DateTime.UtcNow;
 

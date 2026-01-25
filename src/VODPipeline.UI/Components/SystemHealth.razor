@@ -3,7 +3,7 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Logging
 @implements IAsyncDisposable
-@inject ILogger<Data.SystemHealth> Logger
+@inject ILogger<SystemHealth> Logger
 @inject HealthService HealthService
 
 <div class="system-health">
@@ -290,6 +290,12 @@
                 if (HealthStatus == null)
                 {
                     HealthStatus = new SystemHealthResponse();
+                }
+
+                // Ensure Systems dictionary is initialized
+                if (HealthStatus.Systems == null)
+                {
+                    HealthStatus.Systems = new Dictionary<string, Data.SystemHealth>();
                 }
 
                 // Update the system in the dictionary
