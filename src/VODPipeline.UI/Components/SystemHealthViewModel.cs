@@ -142,10 +142,12 @@ namespace VODPipeline.UI.Components
             if (healthResponse == null)
                 throw new ArgumentNullException(nameof(healthResponse));
 
-            Api = GetOrCreateSystemHealth(healthResponse.Systems, "API");
-            Function = GetOrCreateSystemHealth(healthResponse.Systems, "Function");
-            Database = GetOrCreateSystemHealth(healthResponse.Systems, "Database");
-            FileShare = GetOrCreateSystemHealth(healthResponse.Systems, "FileShare");
+            var systems = healthResponse.Systems ?? new Dictionary<string, Data.SystemHealth>();
+
+            Api = GetOrCreateSystemHealth(systems, "API");
+            Function = GetOrCreateSystemHealth(systems, "Function");
+            Database = GetOrCreateSystemHealth(systems, "Database");
+            FileShare = GetOrCreateSystemHealth(systems, "FileShare");
             LastUpdatedAt = healthResponse.LastUpdated ?? DateTime.UtcNow;
             IsHealthy = CalculateIsHealthy();
         }
