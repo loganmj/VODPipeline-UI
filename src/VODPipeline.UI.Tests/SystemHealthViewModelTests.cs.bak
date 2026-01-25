@@ -14,32 +14,29 @@ public class SystemHealthViewModelTests
         // Arrange
         var healthStatus = new SystemHealthResponse
         {
-            Systems = new Dictionary<string, SystemHealth>
+            API = new SystemHealth
             {
-                ["API"] = new SystemHealth
-                {
-                    Status = HealthStatus.Healthy,
-                    LastHeartbeat = DateTime.UtcNow,
-                    Message = "API is running"
-                },
-                ["Function"] = new SystemHealth
-                {
-                    Status = HealthStatus.Healthy,
-                    LastHeartbeat = DateTime.UtcNow,
-                    Message = "Function is running"
-                },
-                ["Database"] = new SystemHealth
-                {
-                    Status = HealthStatus.Healthy,
-                    LastHeartbeat = DateTime.UtcNow,
-                    Message = "Database is running"
-                },
-                ["FileShare"] = new SystemHealth
-                {
-                    Status = HealthStatus.Healthy,
-                    LastHeartbeat = DateTime.UtcNow,
-                    Message = "FileShare is running"
-                }
+                Status = HealthStatus.Healthy,
+                LastHeartbeat = DateTime.UtcNow,
+                Message = "API is running"
+            },
+            Function = new SystemHealth
+            {
+                Status = HealthStatus.Healthy,
+                LastHeartbeat = DateTime.UtcNow,
+                Message = "Function is running"
+            },
+            Database = new SystemHealth
+            {
+                Status = HealthStatus.Healthy,
+                LastHeartbeat = DateTime.UtcNow,
+                Message = "Database is running"
+            },
+            FileShare = new SystemHealth
+            {
+                Status = HealthStatus.Healthy,
+                LastHeartbeat = DateTime.UtcNow,
+                Message = "FileShare is running"
             },
             LastUpdated = DateTime.UtcNow
         };
@@ -72,13 +69,10 @@ public class SystemHealthViewModelTests
         var before = DateTime.UtcNow;
         var healthStatus = new SystemHealthResponse
         {
-            Systems = new Dictionary<string, SystemHealth>
-            {
-                ["API"] = new SystemHealth { Status = HealthStatus.Healthy },
-                ["Function"] = new SystemHealth { Status = HealthStatus.Healthy },
-                ["Database"] = new SystemHealth { Status = HealthStatus.Healthy },
-                ["FileShare"] = new SystemHealth { Status = HealthStatus.Healthy }
-            },
+            API = new SystemHealth { Status = HealthStatus.Healthy },
+            Function = new SystemHealth { Status = HealthStatus.Healthy },
+            Database = new SystemHealth { Status = HealthStatus.Healthy },
+            FileShare = new SystemHealth { Status = HealthStatus.Healthy },
             LastUpdated = null
         };
 
@@ -96,13 +90,10 @@ public class SystemHealthViewModelTests
         // Arrange
         var healthStatus = new SystemHealthResponse
         {
-            Systems = new Dictionary<string, SystemHealth>
-            {
-                ["API"] = new SystemHealth { Status = HealthStatus.Healthy },
-                ["Function"] = new SystemHealth { Status = HealthStatus.Degraded }, // Degraded
-                ["Database"] = new SystemHealth { Status = HealthStatus.Healthy },
-                ["FileShare"] = new SystemHealth { Status = HealthStatus.Healthy }
-            },
+            API = new SystemHealth { Status = HealthStatus.Healthy },
+            Function = new SystemHealth { Status = HealthStatus.Degraded }, // Degraded
+            Database = new SystemHealth { Status = HealthStatus.Healthy },
+            FileShare = new SystemHealth { Status = HealthStatus.Healthy },
             LastUpdated = DateTime.UtcNow
         };
 
@@ -120,13 +111,10 @@ public class SystemHealthViewModelTests
         // Arrange
         var healthStatus = new SystemHealthResponse
         {
-            Systems = new Dictionary<string, SystemHealth>
-            {
-                ["API"] = new SystemHealth { Status = HealthStatus.Healthy },
-                ["Function"] = new SystemHealth { Status = HealthStatus.Healthy },
-                ["Database"] = new SystemHealth { Status = HealthStatus.Unhealthy }, // Unhealthy
-                ["FileShare"] = new SystemHealth { Status = HealthStatus.Healthy }
-            },
+            API = new SystemHealth { Status = HealthStatus.Healthy },
+            Function = new SystemHealth { Status = HealthStatus.Healthy },
+            Database = new SystemHealth { Status = HealthStatus.Unhealthy }, // Unhealthy
+            FileShare = new SystemHealth { Status = HealthStatus.Healthy },
             LastUpdated = DateTime.UtcNow
         };
 
@@ -144,13 +132,10 @@ public class SystemHealthViewModelTests
         // Arrange
         var healthStatus = new SystemHealthResponse
         {
-            Systems = new Dictionary<string, SystemHealth>
-            {
-                ["API"] = new SystemHealth { Status = HealthStatus.Healthy },
-                ["Function"] = new SystemHealth { Status = HealthStatus.Healthy },
-                ["Database"] = new SystemHealth { Status = HealthStatus.Healthy },
-                ["FileShare"] = new SystemHealth { Status = HealthStatus.Unknown } // Unknown
-            },
+            API = new SystemHealth { Status = HealthStatus.Healthy },
+            Function = new SystemHealth { Status = HealthStatus.Healthy },
+            Database = new SystemHealth { Status = HealthStatus.Healthy },
+            FileShare = new SystemHealth { Status = HealthStatus.Unknown }, // Unknown
             LastUpdated = DateTime.UtcNow
         };
 
@@ -168,13 +153,10 @@ public class SystemHealthViewModelTests
         // Arrange
         var healthStatus = new SystemHealthResponse
         {
-            Systems = new Dictionary<string, SystemHealth>
-            {
-                ["API"] = new SystemHealth { Status = HealthStatus.Healthy },
-                ["Function"] = new SystemHealth { Status = HealthStatus.Healthy },
-                ["Database"] = new SystemHealth { Status = HealthStatus.Healthy },
-                ["FileShare"] = new SystemHealth { Status = HealthStatus.Healthy }
-            },
+            API = new SystemHealth { Status = HealthStatus.Healthy },
+            Function = new SystemHealth { Status = HealthStatus.Healthy },
+            Database = new SystemHealth { Status = HealthStatus.Healthy },
+            FileShare = new SystemHealth { Status = HealthStatus.Healthy },
             LastUpdated = DateTime.UtcNow
         };
 
@@ -364,32 +346,29 @@ public class SystemHealthViewModelTests
 
         var updatedHealthStatus = new SystemHealthResponse
         {
-            Systems = new Dictionary<string, SystemHealth>
+            API = new SystemHealth
             {
-                ["API"] = new SystemHealth
-                {
-                    Status = HealthStatus.Degraded,
-                    LastHeartbeat = DateTime.UtcNow,
-                    Message = "API slow"
-                },
-                ["Function"] = new SystemHealth
-                {
-                    Status = HealthStatus.Unhealthy,
-                    LastHeartbeat = DateTime.UtcNow.AddMinutes(-5),
-                    Message = "Function down"
-                },
-                ["Database"] = new SystemHealth
-                {
-                    Status = HealthStatus.Healthy,
-                    LastHeartbeat = DateTime.UtcNow,
-                    Message = "Database OK"
-                },
-                ["FileShare"] = new SystemHealth
-                {
-                    Status = HealthStatus.Degraded,
-                    LastHeartbeat = DateTime.UtcNow,
-                    Message = "Low storage"
-                }
+                Status = HealthStatus.Degraded,
+                LastHeartbeat = DateTime.UtcNow,
+                Message = "API slow"
+            },
+            Function = new SystemHealth
+            {
+                Status = HealthStatus.Unhealthy,
+                LastHeartbeat = DateTime.UtcNow.AddMinutes(-5),
+                Message = "Function down"
+            },
+            Database = new SystemHealth
+            {
+                Status = HealthStatus.Healthy,
+                LastHeartbeat = DateTime.UtcNow,
+                Message = "Database OK"
+            },
+            FileShare = new SystemHealth
+            {
+                Status = HealthStatus.Degraded,
+                LastHeartbeat = DateTime.UtcNow,
+                Message = "Low storage"
             },
             LastUpdated = DateTime.UtcNow
         };
@@ -432,13 +411,10 @@ public class SystemHealthViewModelTests
 
         var updatedHealthStatus = new SystemHealthResponse
         {
-            Systems = new Dictionary<string, SystemHealth>
-            {
-                ["API"] = new SystemHealth { Status = HealthStatus.Healthy },
-                ["Function"] = new SystemHealth { Status = HealthStatus.Healthy },
-                ["Database"] = new SystemHealth { Status = HealthStatus.Healthy },
-                ["FileShare"] = new SystemHealth { Status = HealthStatus.Healthy }
-            },
+            API = new SystemHealth { Status = HealthStatus.Healthy },
+            Function = new SystemHealth { Status = HealthStatus.Healthy },
+            Database = new SystemHealth { Status = HealthStatus.Healthy },
+            FileShare = new SystemHealth { Status = HealthStatus.Healthy },
             LastUpdated = null
         };
 
@@ -545,13 +521,10 @@ public class SystemHealthViewModelTests
         // Act - Apply full update that overrides everything
         var fullUpdate = new SystemHealthResponse
         {
-            Systems = new Dictionary<string, SystemHealth>
-            {
-                ["API"] = new SystemHealth { Status = HealthStatus.Healthy, Message = "All good" },
-                ["Function"] = new SystemHealth { Status = HealthStatus.Healthy, Message = "All good" },
-                ["Database"] = new SystemHealth { Status = HealthStatus.Healthy, Message = "All good" },
-                ["FileShare"] = new SystemHealth { Status = HealthStatus.Healthy, Message = "All good" }
-            },
+            API = new SystemHealth { Status = HealthStatus.Healthy, Message = "All good" },
+            Function = new SystemHealth { Status = HealthStatus.Healthy, Message = "All good" },
+            Database = new SystemHealth { Status = HealthStatus.Healthy, Message = "All good" },
+            FileShare = new SystemHealth { Status = HealthStatus.Healthy, Message = "All good" },
             LastUpdated = DateTime.UtcNow
         };
         viewModel.ApplyFullUpdate(fullUpdate);
