@@ -3,7 +3,7 @@
 @using Microsoft.AspNetCore.SignalR.Client
 @using Microsoft.Extensions.Logging
 @implements IAsyncDisposable
-@inject ILogger<SystemHealth> Logger
+@inject ILogger<Data.SystemHealth> Logger
 @inject HealthService HealthService
 
 <div class="system-health">
@@ -12,73 +12,85 @@
     @if (HealthStatus != null)
     {
         <div class="health-grid">
-            <div class="health-component">
-                <div class="health-indicator @GetStatusClass(HealthStatus.Function.Status)" 
-                     role="status" 
-                     aria-label="Function status: @GetStatusText(HealthStatus.Function.Status)"></div>
-                <div class="health-details">
-                    <strong>Function <span class="status-text">(@GetStatusText(HealthStatus.Function.Status))</span></strong>
-                    @if (HealthStatus.Function.LastHeartbeat.HasValue)
-                    {
-                        <small>Last heartbeat: @FormatTimestamp(HealthStatus.Function.LastHeartbeat.Value)</small>
-                    }
-                    @if (!string.IsNullOrEmpty(HealthStatus.Function.Message))
-                    {
-                        <small class="health-message">@HealthStatus.Function.Message</small>
-                    }
+            @if (GetSystemHealth("Function") is var function && function != null)
+            {
+                <div class="health-component">
+                    <div class="health-indicator @GetStatusClass(function.Status)" 
+                         role="status" 
+                         aria-label="Function status: @GetStatusText(function.Status)"></div>
+                    <div class="health-details">
+                        <strong>Function <span class="status-text">(@GetStatusText(function.Status))</span></strong>
+                        @if (function.LastHeartbeat.HasValue)
+                        {
+                            <small>Last heartbeat: @FormatTimestamp(function.LastHeartbeat.Value)</small>
+                        }
+                        @if (!string.IsNullOrEmpty(function.Message))
+                        {
+                            <small class="health-message">@function.Message</small>
+                        }
+                    </div>
                 </div>
-            </div>
+            }
 
-            <div class="health-component">
-                <div class="health-indicator @GetStatusClass(HealthStatus.API.Status)" 
-                     role="status" 
-                     aria-label="API status: @GetStatusText(HealthStatus.API.Status)"></div>
-                <div class="health-details">
-                    <strong>API <span class="status-text">(@GetStatusText(HealthStatus.API.Status))</span></strong>
-                    @if (HealthStatus.API.LastHeartbeat.HasValue)
-                    {
-                        <small>Last heartbeat: @FormatTimestamp(HealthStatus.API.LastHeartbeat.Value)</small>
-                    }
-                    @if (!string.IsNullOrEmpty(HealthStatus.API.Message))
-                    {
-                        <small class="health-message">@HealthStatus.API.Message</small>
-                    }
+            @if (GetSystemHealth("API") is var api && api != null)
+            {
+                <div class="health-component">
+                    <div class="health-indicator @GetStatusClass(api.Status)" 
+                         role="status" 
+                         aria-label="API status: @GetStatusText(api.Status)"></div>
+                    <div class="health-details">
+                        <strong>API <span class="status-text">(@GetStatusText(api.Status))</span></strong>
+                        @if (api.LastHeartbeat.HasValue)
+                        {
+                            <small>Last heartbeat: @FormatTimestamp(api.LastHeartbeat.Value)</small>
+                        }
+                        @if (!string.IsNullOrEmpty(api.Message))
+                        {
+                            <small class="health-message">@api.Message</small>
+                        }
+                    </div>
                 </div>
-            </div>
+            }
 
-            <div class="health-component">
-                <div class="health-indicator @GetStatusClass(HealthStatus.Database.Status)" 
-                     role="status" 
-                     aria-label="Database status: @GetStatusText(HealthStatus.Database.Status)"></div>
-                <div class="health-details">
-                    <strong>Database <span class="status-text">(@GetStatusText(HealthStatus.Database.Status))</span></strong>
-                    @if (HealthStatus.Database.LastHeartbeat.HasValue)
-                    {
-                        <small>Last heartbeat: @FormatTimestamp(HealthStatus.Database.LastHeartbeat.Value)</small>
-                    }
-                    @if (!string.IsNullOrEmpty(HealthStatus.Database.Message))
-                    {
-                        <small class="health-message">@HealthStatus.Database.Message</small>
-                    }
+            @if (GetSystemHealth("Database") is var database && database != null)
+            {
+                <div class="health-component">
+                    <div class="health-indicator @GetStatusClass(database.Status)" 
+                         role="status" 
+                         aria-label="Database status: @GetStatusText(database.Status)"></div>
+                    <div class="health-details">
+                        <strong>Database <span class="status-text">(@GetStatusText(database.Status))</span></strong>
+                        @if (database.LastHeartbeat.HasValue)
+                        {
+                            <small>Last heartbeat: @FormatTimestamp(database.LastHeartbeat.Value)</small>
+                        }
+                        @if (!string.IsNullOrEmpty(database.Message))
+                        {
+                            <small class="health-message">@database.Message</small>
+                        }
+                    </div>
                 </div>
-            </div>
+            }
 
-            <div class="health-component">
-                <div class="health-indicator @GetStatusClass(HealthStatus.FileShare.Status)" 
-                     role="status" 
-                     aria-label="File Share status: @GetStatusText(HealthStatus.FileShare.Status)"></div>
-                <div class="health-details">
-                    <strong>File Share <span class="status-text">(@GetStatusText(HealthStatus.FileShare.Status))</span></strong>
-                    @if (HealthStatus.FileShare.LastHeartbeat.HasValue)
-                    {
-                        <small>Last heartbeat: @FormatTimestamp(HealthStatus.FileShare.LastHeartbeat.Value)</small>
-                    }
-                    @if (!string.IsNullOrEmpty(HealthStatus.FileShare.Message))
-                    {
-                        <small class="health-message">@HealthStatus.FileShare.Message</small>
-                    }
+            @if (GetSystemHealth("FileShare") is var fileShare && fileShare != null)
+            {
+                <div class="health-component">
+                    <div class="health-indicator @GetStatusClass(fileShare.Status)" 
+                         role="status" 
+                         aria-label="File Share status: @GetStatusText(fileShare.Status)"></div>
+                    <div class="health-details">
+                        <strong>File Share <span class="status-text">(@GetStatusText(fileShare.Status))</span></strong>
+                        @if (fileShare.LastHeartbeat.HasValue)
+                        {
+                            <small>Last heartbeat: @FormatTimestamp(fileShare.LastHeartbeat.Value)</small>
+                        }
+                        @if (!string.IsNullOrEmpty(fileShare.Message))
+                        {
+                            <small class="health-message">@fileShare.Message</small>
+                        }
+                    </div>
                 </div>
-            </div>
+            }
         </div>
 
         @if (HealthStatus.LastUpdated.HasValue)
@@ -123,7 +135,7 @@
     private const string ComponentNameFileShare = "FileShare";
 
     [Parameter]
-    public SystemHealthStatus? HealthStatus { get; set; }
+    public SystemHealthResponse? HealthStatus { get; set; }
 
     [Parameter]
     public string? HubUrl { get; set; }
@@ -207,7 +219,7 @@
                 });
             };
 
-            hubConnection.On<SystemHealthStatus>("SystemHealthUpdated", async (updatedStatus) =>
+            hubConnection.On<SystemHealthResponse>("SystemHealthUpdated", async (updatedStatus) =>
             {
                 try
                 {
@@ -224,24 +236,24 @@
             });
 
             // Subscribe to individual component health events
-            hubConnection.On<SubsystemHealth>("functionHeartbeat", async (subsystemHealth) =>
+            hubConnection.On<Data.SystemHealth>("functionHeartbeat", async (systemHealth) =>
             {
-                await HandleComponentHealthUpdate(subsystemHealth, ComponentNameFunction, "functionHeartbeat");
+                await HandleComponentHealthUpdate(systemHealth, ComponentNameFunction, "functionHeartbeat");
             });
 
-            hubConnection.On<SubsystemHealth>("apiHeartbeat", async (subsystemHealth) =>
+            hubConnection.On<Data.SystemHealth>("apiHeartbeat", async (systemHealth) =>
             {
-                await HandleComponentHealthUpdate(subsystemHealth, ComponentNameAPI, "apiHeartbeat");
+                await HandleComponentHealthUpdate(systemHealth, ComponentNameAPI, "apiHeartbeat");
             });
 
-            hubConnection.On<SubsystemHealth>("dbStatusChanged", async (subsystemHealth) =>
+            hubConnection.On<Data.SystemHealth>("dbStatusChanged", async (systemHealth) =>
             {
-                await HandleComponentHealthUpdate(subsystemHealth, ComponentNameDatabase, "dbStatusChanged");
+                await HandleComponentHealthUpdate(systemHealth, ComponentNameDatabase, "dbStatusChanged");
             });
 
-            hubConnection.On<SubsystemHealth>("fileShareStatusChanged", async (subsystemHealth) =>
+            hubConnection.On<Data.SystemHealth>("fileShareStatusChanged", async (systemHealth) =>
             {
-                await HandleComponentHealthUpdate(subsystemHealth, ComponentNameFileShare, "fileShareStatusChanged");
+                await HandleComponentHealthUpdate(systemHealth, ComponentNameFileShare, "fileShareStatusChanged");
             });
 
             await hubConnection.StartAsync();
@@ -269,7 +281,7 @@
         }
     }
 
-    private async Task HandleComponentHealthUpdate(SubsystemHealth subsystemHealth, string componentName, string eventName)
+    private async Task HandleComponentHealthUpdate(Data.SystemHealth systemHealth, string componentName, string eventName)
     {
         try
         {
@@ -277,27 +289,11 @@
             {
                 if (HealthStatus == null)
                 {
-                    HealthStatus = new SystemHealthStatus();
+                    HealthStatus = new SystemHealthResponse();
                 }
 
-                switch (componentName)
-                {
-                    case ComponentNameFunction:
-                        HealthStatus.Function = subsystemHealth;
-                        break;
-                    case ComponentNameAPI:
-                        HealthStatus.API = subsystemHealth;
-                        break;
-                    case ComponentNameDatabase:
-                        HealthStatus.Database = subsystemHealth;
-                        break;
-                    case ComponentNameFileShare:
-                        HealthStatus.FileShare = subsystemHealth;
-                        break;
-                    default:
-                        Logger.LogWarning("Received update for unknown component: {ComponentName}", componentName);
-                        return;
-                }
+                // Update the system in the dictionary
+                HealthStatus.Systems[componentName] = systemHealth;
                 HealthStatus.LastUpdated = DateTime.UtcNow;
                 StateHasChanged();
             });
@@ -333,6 +329,15 @@
                 Logger.LogError(ex, "Error while disposing SignalR hub connection.");
             }
         }
+    }
+
+    private Data.SystemHealth? GetSystemHealth(string key)
+    {
+        if (HealthStatus?.Systems != null && HealthStatus.Systems.TryGetValue(key, out var health))
+        {
+            return health;
+        }
+        return null;
     }
 
     private string GetStatusClass(HealthStatus healthStatus)

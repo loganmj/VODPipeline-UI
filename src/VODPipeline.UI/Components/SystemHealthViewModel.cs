@@ -22,10 +22,10 @@ namespace VODPipeline.UI.Components
         public DateTime LastUpdatedAt { get; private set; }
 
         // ===== Subsystem Statuses =====
-        public SubsystemHealth Api { get; private set; }
-        public SubsystemHealth Function { get; private set; }
-        public SubsystemHealth Database { get; private set; }
-        public SubsystemHealth FileShare { get; private set; }
+        public Data.SystemHealth Api { get; private set; }
+        public Data.SystemHealth Function { get; private set; }
+        public Data.SystemHealth Database { get; private set; }
+        public Data.SystemHealth FileShare { get; private set; }
 
         // ===== UI Helper Properties =====
         /// <summary>
@@ -38,10 +38,10 @@ namespace VODPipeline.UI.Components
         /// Private constructor to enforce factory pattern
         /// </summary>
         private SystemHealthViewModel(
-            SubsystemHealth api,
-            SubsystemHealth function,
-            SubsystemHealth database,
-            SubsystemHealth fileShare,
+            Data.SystemHealth api,
+            Data.SystemHealth function,
+            Data.SystemHealth database,
+            Data.SystemHealth fileShare,
             DateTime lastUpdatedAt)
         {
             Api = api;
@@ -53,20 +53,20 @@ namespace VODPipeline.UI.Components
         }
 
         /// <summary>
-        /// Creates a new SystemHealthViewModel from a SystemHealthStatus DTO
+        /// Creates a new SystemHealthViewModel from a SystemHealthResponse DTO
         /// </summary>
-        public static SystemHealthViewModel FromSystemHealthStatus(SystemHealthStatus healthStatus)
+        public static SystemHealthViewModel FromSystemHealthResponse(SystemHealthResponse healthResponse)
         {
-            if (healthStatus == null)
-                throw new ArgumentNullException(nameof(healthStatus));
+            if (healthResponse == null)
+                throw new ArgumentNullException(nameof(healthResponse));
 
-            // Copy subsystem health data
-            var api = CopySubsystemHealth(healthStatus.API);
-            var function = CopySubsystemHealth(healthStatus.Function);
-            var database = CopySubsystemHealth(healthStatus.Database);
-            var fileShare = CopySubsystemHealth(healthStatus.FileShare);
+            // Extract subsystem health data from dictionary
+            var api = GetOrCreateSystemHealth(healthResponse.Systems, "API");
+            var function = GetOrCreateSystemHealth(healthResponse.Systems, "Function");
+            var database = GetOrCreateSystemHealth(healthResponse.Systems, "Database");
+            var fileShare = GetOrCreateSystemHealth(healthResponse.Systems, "FileShare");
             
-            var lastUpdatedAt = healthStatus.LastUpdated ?? DateTime.UtcNow;
+            var lastUpdatedAt = healthResponse.LastUpdated ?? DateTime.UtcNow;
 
             return new SystemHealthViewModel(
                 api: api,
@@ -81,12 +81,12 @@ namespace VODPipeline.UI.Components
         /// Updates the API subsystem health status.
         /// This method is called when receiving apiHeartbeat SignalR events.
         /// </summary>
-        public void UpdateApiHealth(SubsystemHealth subsystemHealth)
+        public void UpdateApiHealth(Data.SystemHealth systemHealth)
         {
-            if (subsystemHealth == null)
-                throw new ArgumentNullException(nameof(subsystemHealth));
+            if (systemHealth == null)
+                throw new ArgumentNullException(nameof(systemHealth));
 
-            Api = CopySubsystemHealth(subsystemHealth);
+            Api = CopySystemHealth(systemHealth);
             LastUpdatedAt = DateTime.UtcNow;
             IsHealthy = CalculateIsHealthy();
         }
@@ -95,12 +95,12 @@ namespace VODPipeline.UI.Components
         /// Updates the Function subsystem health status.
         /// This method is called when receiving functionHeartbeat SignalR events.
         /// </summary>
-        public void UpdateFunctionHealth(SubsystemHealth subsystemHealth)
+        public void UpdateFunctionHealth(Data.SystemHealth systemHealth)
         {
-            if (subsystemHealth == null)
-                throw new ArgumentNullException(nameof(subsystemHealth));
+            if (systemHealth == null)
+                throw new ArgumentNullException(nameof(systemHealth));
 
-            Function = CopySubsystemHealth(subsystemHealth);
+            Function = CopySystemHealth(systemHealth);
             LastUpdatedAt = DateTime.UtcNow;
             IsHealthy = CalculateIsHealthy();
         }
@@ -109,12 +109,12 @@ namespace VODPipeline.UI.Components
         /// Updates the Database subsystem health status.
         /// This method is called when receiving dbStatusChanged SignalR events.
         /// </summary>
-        public void UpdateDatabaseHealth(SubsystemHealth subsystemHealth)
+        public void UpdateDatabaseHealth(Data.SystemHealth systemHealth)
         {
-            if (subsystemHealth == null)
-                throw new ArgumentNullException(nameof(subsystemHealth));
+            if (systemHealth == null)
+                throw new ArgumentNullException(nameof(systemHealth));
 
-            Database = CopySubsystemHealth(subsystemHealth);
+            Database = CopySystemHealth(systemHealth);
             LastUpdatedAt = DateTime.UtcNow;
             IsHealthy = CalculateIsHealthy();
         }
@@ -123,30 +123,30 @@ namespace VODPipeline.UI.Components
         /// Updates the FileShare subsystem health status.
         /// This method is called when receiving fileShareStatusChanged SignalR events.
         /// </summary>
-        public void UpdateFileShareHealth(SubsystemHealth subsystemHealth)
+        public void UpdateFileShareHealth(Data.SystemHealth systemHealth)
         {
-            if (subsystemHealth == null)
-                throw new ArgumentNullException(nameof(subsystemHealth));
+            if (systemHealth == null)
+                throw new ArgumentNullException(nameof(systemHealth));
 
-            FileShare = CopySubsystemHealth(subsystemHealth);
+            FileShare = CopySystemHealth(systemHealth);
             LastUpdatedAt = DateTime.UtcNow;
             IsHealthy = CalculateIsHealthy();
         }
 
         /// <summary>
-        /// Applies a full system health update from a SystemHealthStatus DTO.
+        /// Applies a full system health update from a SystemHealthResponse DTO.
         /// This method is called when receiving SystemHealthUpdated SignalR events.
         /// </summary>
-        public void ApplyFullUpdate(SystemHealthStatus healthStatus)
+        public void ApplyFullUpdate(SystemHealthResponse healthResponse)
         {
-            if (healthStatus == null)
-                throw new ArgumentNullException(nameof(healthStatus));
+            if (healthResponse == null)
+                throw new ArgumentNullException(nameof(healthResponse));
 
-            Api = CopySubsystemHealth(healthStatus.API);
-            Function = CopySubsystemHealth(healthStatus.Function);
-            Database = CopySubsystemHealth(healthStatus.Database);
-            FileShare = CopySubsystemHealth(healthStatus.FileShare);
-            LastUpdatedAt = healthStatus.LastUpdated ?? DateTime.UtcNow;
+            Api = GetOrCreateSystemHealth(healthResponse.Systems, "API");
+            Function = GetOrCreateSystemHealth(healthResponse.Systems, "Function");
+            Database = GetOrCreateSystemHealth(healthResponse.Systems, "Database");
+            FileShare = GetOrCreateSystemHealth(healthResponse.Systems, "FileShare");
+            LastUpdatedAt = healthResponse.LastUpdated ?? DateTime.UtcNow;
             IsHealthy = CalculateIsHealthy();
         }
 
@@ -161,15 +161,27 @@ namespace VODPipeline.UI.Components
         }
 
         /// <summary>
-        /// Creates a copy of a SubsystemHealth to ensure immutability.
+        /// Gets a system health from the dictionary or creates a new one if not found.
         /// </summary>
-        private static SubsystemHealth CopySubsystemHealth(SubsystemHealth subsystemHealth)
+        private static Data.SystemHealth GetOrCreateSystemHealth(Dictionary<string, Data.SystemHealth> systems, string key)
         {
-            return new SubsystemHealth
+            if (systems.TryGetValue(key, out var systemHealth))
             {
-                Status = subsystemHealth.Status,
-                LastHeartbeat = subsystemHealth.LastHeartbeat,
-                Message = subsystemHealth.Message
+                return CopySystemHealth(systemHealth);
+            }
+            return new Data.SystemHealth();
+        }
+
+        /// <summary>
+        /// Creates a copy of a SystemHealth to ensure immutability.
+        /// </summary>
+        private static Data.SystemHealth CopySystemHealth(Data.SystemHealth systemHealth)
+        {
+            return new Data.SystemHealth
+            {
+                Status = systemHealth.Status,
+                LastHeartbeat = systemHealth.LastHeartbeat,
+                Message = systemHealth.Message
             };
         }
     }

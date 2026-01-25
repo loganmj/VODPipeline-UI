@@ -1,9 +1,9 @@
 namespace VODPipeline.UI.Data
 {
     /// <summary>
-    /// Represents the health status of an individual subsystem.
+    /// Represents the health status of an individual system.
     /// </summary>
-    public class SubsystemHealth : IComponentHealth
+    public class SystemHealth : ISystemHealth
     {
         public HealthStatus Status { get; set; } = HealthStatus.Unknown;
         public DateTime? LastHeartbeat { get; set; }
