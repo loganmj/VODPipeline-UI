@@ -11,9 +11,9 @@ namespace VODPipeline.UI.Services
             _http = http;
         }
 
-        public async Task<SystemHealthStatus?> GetHealthAsync()
+        public async Task<SystemHealthResponse?> GetHealthAsync()
         {
-            return await _http.GetFromJsonAsync<SystemHealthStatus>("api/health");
+            return await _http.GetFromJsonAsync<SystemHealthResponse>("api/health");
         }
     }
 }
