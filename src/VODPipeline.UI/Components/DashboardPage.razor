@@ -1,7 +1,6 @@
 @using VODPipeline.UI.Data
 @using VODPipeline.UI.Services
 @inject JobService JobService
-@inject HealthService HealthService
 @inject ConfigService ConfigService
 @inject IConfiguration Configuration
 @inject ILogger<DashboardPage> Logger
@@ -20,10 +19,6 @@
         </div>
 
         <div class="dashboard-section">
-            <SystemHealth HealthStatus="@healthStatus" HubUrl="@signalRHubUrl" />
-        </div>
-
-        <div class="dashboard-section">
             <RecentJobs MaxJobs="10" HubUrl="@signalRHubUrl" />
         </div>
 
@@ -35,7 +30,6 @@
 
 @code {
     private JobStatus? jobStatus;
-    private SystemHealthResponse? healthStatus;
     private PipelineConfig? config;
     private string? signalRHubUrl;
     private bool isLoading = true;
@@ -48,10 +42,9 @@
         // Load data in parallel for better performance
         // Each service call is wrapped to allow partial data loading
         var jobStatusTask = LoadJobStatusAsync();
-        var healthStatusTask = LoadHealthStatusAsync();
         var configTask = LoadConfigAsync();
 
-        await Task.WhenAll(jobStatusTask, healthStatusTask, configTask);
+        await Task.WhenAll(jobStatusTask, configTask);
 
         isLoading = false;
     }
@@ -65,18 +58,6 @@
         catch (Exception ex)
         {
             Logger.LogError(ex, "Error loading job status");
-        }
-    }
-
-    private async Task LoadHealthStatusAsync()
-    {
-        try
-        {
-            healthStatus = await HealthService.GetHealthAsync();
-        }
-        catch (Exception ex)
-        {
-            Logger.LogError(ex, "Error loading health status");
         }
     }
 
