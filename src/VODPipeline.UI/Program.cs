@@ -18,10 +18,6 @@ builder.Services.AddHttpClient<ConfigService>(client =>
     client.BaseAddress = vodApiBaseUrl;
 });
 
-builder.Services.AddHttpClient<HealthService>(client =>
-{
-    client.BaseAddress = vodApiBaseUrl;
-});
 builder.Services.AddSingleton<SignalRConnectionService>();
 
 var app = builder.Build();
