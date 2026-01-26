@@ -2,9 +2,7 @@
 
 This is the Blazor Server dashboard for monitoring and managing the VODPipeline system.
 
-This application is a web frontend to provide monitoring for the stateless function app defined here: https://github.com/loganmj/VODPipeline-Function.
-
-It will do this by interacting with the API defined here: https://github.com/loganmj/VODPipeline-API
+This application provides a web frontend for monitoring the video processing pipeline. It interacts with the backend API to display job status, history, and configuration. See the Architecture section below for links to related components.
 
 ## Features
 - Live job status
