@@ -84,11 +84,9 @@ namespace VODPipeline.UI.Components
             if (jobId == Guid.Empty)
                 throw new ArgumentException("JobStatus.JobId must be a valid GUID", nameof(jobStatus));
             
-            // Use Timestamp for StartedAt (job start time)
+            // Use Timestamp for both StartedAt and LastUpdatedAt (job start time)
             var startedAt = jobStatus.Timestamp ?? DateTime.UtcNow;
-            
-            // Use LastUpdated for LastUpdatedAt if available, otherwise fall back to Timestamp
-            var lastUpdatedAt = jobStatus.LastUpdated ?? startedAt;
+            var lastUpdatedAt = startedAt;
             
             return new CurrentJobViewModel(
                 jobId: jobId,
@@ -98,7 +96,7 @@ namespace VODPipeline.UI.Components
                 isRunning: jobStatus.IsRunning,
                 startedAt: startedAt,
                 lastUpdatedAt: lastUpdatedAt,
-                estimatedRemaining: jobStatus.EstimatedTimeRemaining
+                estimatedRemaining: null
             );
         }
 
@@ -127,7 +125,7 @@ namespace VODPipeline.UI.Components
             // Consider using a separate update DTO with nullable fields if partial updates are required.
             IsRunning = update.IsRunning;
 
-            // Update timing - prioritize LastUpdated, fallback to Timestamp, then UtcNow
+            // Update timing - use Timestamp, fallback to UtcNow
             LastUpdatedAt = GetTimestampFromUpdate(update);
 
             // Recalculate estimated remaining time
@@ -167,14 +165,7 @@ namespace VODPipeline.UI.Components
         /// </summary>
         private void RecalculateEstimatedRemaining(JobStatus update)
         {
-            // If the update provides an estimated time remaining, use it
-            if (update.EstimatedTimeRemaining.HasValue)
-            {
-                EstimatedRemaining = update.EstimatedTimeRemaining;
-                return;
-            }
-
-            // Otherwise, calculate based on progress
+            // Calculate based on progress
             var elapsed = Elapsed;
             
             // Can't calculate if no time has elapsed or no progress made
@@ -211,11 +202,11 @@ namespace VODPipeline.UI.Components
 
         /// <summary>
         /// Extracts the timestamp from a JobStatus update.
-        /// Prioritizes LastUpdated, falls back to Timestamp, then to UtcNow as a last resort.
+        /// Uses Timestamp, falls back to UtcNow as a last resort.
         /// </summary>
         private DateTime GetTimestampFromUpdate(JobStatus update)
         {
-            return update.LastUpdated ?? update.Timestamp ?? DateTime.UtcNow;
+            return update.Timestamp ?? DateTime.UtcNow;
         }
     }
 }

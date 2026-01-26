@@ -19,8 +19,7 @@ public class CurrentJobViewModelTests
             Stage = "Downloading",
             Percent = 50,
             IsRunning = true,
-            Timestamp = DateTime.UtcNow.AddMinutes(-5),
-            LastUpdated = DateTime.UtcNow
+            Timestamp = DateTime.UtcNow
         };
 
         // Act
@@ -33,7 +32,7 @@ public class CurrentJobViewModelTests
         Assert.Equal(50, viewModel.Percent);
         Assert.True(viewModel.IsRunning);
         Assert.Equal(jobStatus.Timestamp.Value, viewModel.StartedAt);
-        Assert.Equal(jobStatus.LastUpdated.Value, viewModel.LastUpdatedAt);
+        Assert.Equal(jobStatus.Timestamp.Value, viewModel.LastUpdatedAt);
     }
 
     [Fact]
@@ -110,8 +109,7 @@ public class CurrentJobViewModelTests
             Stage = "Downloading",
             Percent = 50,
             IsRunning = true,
-            Timestamp = null,
-            LastUpdated = null
+            Timestamp = null
         };
 
         // Act
@@ -124,7 +122,7 @@ public class CurrentJobViewModelTests
     }
 
     [Fact]
-    public void FromJobStatus_WithNullLastUpdated_UsesTimestamp()
+    public void FromJobStatus_WithTimestamp_UsesSameForBothStartedAtAndLastUpdatedAt()
     {
         // Arrange
         var jobId = Guid.NewGuid();
@@ -136,8 +134,7 @@ public class CurrentJobViewModelTests
             Stage = "Downloading",
             Percent = 50,
             IsRunning = true,
-            Timestamp = timestamp,
-            LastUpdated = null
+            Timestamp = timestamp
         };
 
         // Act
@@ -218,11 +215,10 @@ public class CurrentJobViewModelTests
     }
 
     [Fact]
-    public void FromJobStatus_WithEstimatedTimeRemaining_SetsProperty()
+    public void FromJobStatus_WithoutEstimatedTimeRemaining_StartsWithNull()
     {
         // Arrange
         var jobId = Guid.NewGuid();
-        var estimatedRemaining = TimeSpan.FromMinutes(5);
         var jobStatus = new JobStatus
         {
             JobId = jobId.ToString(),
@@ -230,15 +226,14 @@ public class CurrentJobViewModelTests
             Stage = "Downloading",
             Percent = 50,
             IsRunning = true,
-            Timestamp = DateTime.UtcNow,
-            EstimatedTimeRemaining = estimatedRemaining
+            Timestamp = DateTime.UtcNow
         };
 
         // Act
         var viewModel = CurrentJobViewModel.FromJobStatus(jobStatus);
 
         // Assert
-        Assert.Equal(estimatedRemaining, viewModel.EstimatedRemaining);
+        Assert.Null(viewModel.EstimatedRemaining);
     }
 
     #endregion
@@ -277,8 +272,7 @@ public class CurrentJobViewModelTests
             Stage = "Downloading",
             Percent = 50,
             IsRunning = true,
-            Timestamp = DateTime.UtcNow.AddMinutes(-5),
-            LastUpdated = DateTime.UtcNow.AddMinutes(-4)
+            Timestamp = DateTime.UtcNow
         };
         var viewModel = CurrentJobViewModel.FromJobStatus(jobStatus);
 
@@ -288,7 +282,7 @@ public class CurrentJobViewModelTests
             Stage = "Processing",
             Percent = 75,
             IsRunning = true,
-            LastUpdated = DateTime.UtcNow
+            Timestamp = DateTime.UtcNow
         };
 
         // Act
@@ -357,7 +351,7 @@ public class CurrentJobViewModelTests
             Stage = "Processing",
             Percent = 75,
             IsRunning = true,
-            LastUpdated = DateTime.UtcNow
+            Timestamp = DateTime.UtcNow
         };
 
         // Act
@@ -391,7 +385,7 @@ public class CurrentJobViewModelTests
             Stage = null,
             Percent = 75,
             IsRunning = true,
-            LastUpdated = DateTime.UtcNow
+            Timestamp = DateTime.UtcNow
         };
 
         // Act
@@ -424,7 +418,7 @@ public class CurrentJobViewModelTests
             Stage = "Processing",
             Percent = null,
             IsRunning = true,
-            LastUpdated = DateTime.UtcNow
+            Timestamp = DateTime.UtcNow
         };
 
         // Act
@@ -457,7 +451,7 @@ public class CurrentJobViewModelTests
             Stage = "Processing",
             Percent = 150, // Over 100
             IsRunning = true,
-            LastUpdated = DateTime.UtcNow
+            Timestamp = DateTime.UtcNow
         };
 
         // Act
@@ -489,7 +483,7 @@ public class CurrentJobViewModelTests
             Stage = "Processing",
             Percent = -20, // Negative value
             IsRunning = true,
-            LastUpdated = DateTime.UtcNow
+            Timestamp = DateTime.UtcNow
         };
 
         // Act
@@ -511,8 +505,7 @@ public class CurrentJobViewModelTests
             Stage = "Processing",
             Percent = 90,
             IsRunning = true,
-            Timestamp = DateTime.UtcNow.AddMinutes(-10),
-            LastUpdated = DateTime.UtcNow.AddMinutes(-1)
+            Timestamp = DateTime.UtcNow.AddMinutes(-10)
         };
         var viewModel = CurrentJobViewModel.FromJobStatus(jobStatus);
 
@@ -522,7 +515,7 @@ public class CurrentJobViewModelTests
             Stage = "Complete",
             Percent = 100,
             IsRunning = true, // Even if update says running
-            LastUpdated = DateTime.UtcNow
+            Timestamp = DateTime.UtcNow
         };
 
         // Act
@@ -535,7 +528,7 @@ public class CurrentJobViewModelTests
     }
 
     [Fact]
-    public void ApplyUpdate_WithEstimatedTimeRemaining_UsesProvidedValue()
+    public void ApplyUpdate_CalculatesEstimatedTimeBasedOnProgress()
     {
         // Arrange
         var jobId = Guid.NewGuid();
@@ -546,31 +539,28 @@ public class CurrentJobViewModelTests
             Stage = "Downloading",
             Percent = 50,
             IsRunning = true,
-            Timestamp = DateTime.UtcNow.AddMinutes(-10),
-            LastUpdated = DateTime.UtcNow.AddMinutes(-5)
+            Timestamp = DateTime.UtcNow.AddMinutes(-10)
         };
         var viewModel = CurrentJobViewModel.FromJobStatus(jobStatus);
 
-        var estimatedRemaining = TimeSpan.FromMinutes(3);
         var update = new JobStatus
         {
             JobId = jobId.ToString(),
             Stage = "Processing",
             Percent = 60,
             IsRunning = true,
-            LastUpdated = DateTime.UtcNow,
-            EstimatedTimeRemaining = estimatedRemaining
+            Timestamp = DateTime.UtcNow
         };
 
         // Act
         viewModel.ApplyUpdate(update);
 
-        // Assert
-        Assert.Equal(estimatedRemaining, viewModel.EstimatedRemaining);
+        // Assert - EstimatedRemaining should be calculated
+        Assert.NotNull(viewModel.EstimatedRemaining);
     }
 
     [Fact]
-    public void ApplyUpdate_WithoutEstimatedTimeRemaining_CalculatesBasedOnProgress()
+    public void ApplyUpdate_CalculatesEstimatedTimeRemaining_BasedOnProgress()
     {
         // Arrange
         var jobId = Guid.NewGuid();
@@ -582,8 +572,7 @@ public class CurrentJobViewModelTests
             Stage = "Downloading",
             Percent = 25,
             IsRunning = true,
-            Timestamp = startTime,
-            LastUpdated = startTime
+            Timestamp = startTime
         };
         var viewModel = CurrentJobViewModel.FromJobStatus(jobStatus);
 
@@ -594,8 +583,7 @@ public class CurrentJobViewModelTests
             Stage = "Downloading",
             Percent = 50,
             IsRunning = true,
-            LastUpdated = updateTime,
-            EstimatedTimeRemaining = null
+            Timestamp = updateTime
         };
 
         // Act
@@ -621,8 +609,7 @@ public class CurrentJobViewModelTests
             Stage = "Starting",
             Percent = 0,
             IsRunning = true,
-            Timestamp = startTime,
-            LastUpdated = startTime
+            Timestamp = startTime
         };
         var viewModel = CurrentJobViewModel.FromJobStatus(jobStatus);
 
@@ -632,7 +619,7 @@ public class CurrentJobViewModelTests
             Stage = "Starting",
             Percent = 0,
             IsRunning = true,
-            LastUpdated = DateTime.UtcNow
+            Timestamp = DateTime.UtcNow
         };
 
         // Act
@@ -658,9 +645,7 @@ public class CurrentJobViewModelTests
             Stage = "Processing",
             Percent = 50,
             IsRunning = true,
-            Timestamp = DateTime.UtcNow.AddMinutes(-5),
-            LastUpdated = DateTime.UtcNow,
-            EstimatedTimeRemaining = TimeSpan.FromMinutes(5)
+            Timestamp = DateTime.UtcNow
         };
         var viewModel = CurrentJobViewModel.FromJobStatus(jobStatus);
 
@@ -707,7 +692,6 @@ public class CurrentJobViewModelTests
         // Arrange
         var jobId = Guid.NewGuid();
         var startTime = DateTime.UtcNow.AddMinutes(-10);
-        var lastUpdated = DateTime.UtcNow;
         var jobStatus = new JobStatus
         {
             JobId = jobId.ToString(),
@@ -715,25 +699,23 @@ public class CurrentJobViewModelTests
             Stage = "Processing",
             Percent = 50,
             IsRunning = true,
-            Timestamp = startTime,
-            LastUpdated = lastUpdated
+            Timestamp = startTime
         };
 
         // Act
         var viewModel = CurrentJobViewModel.FromJobStatus(jobStatus);
 
         // Assert
-        var expectedElapsed = lastUpdated - startTime;
-        Assert.Equal(expectedElapsed, viewModel.Elapsed);
+        var expectedElapsed = startTime - startTime; // Since both are now the same
+        Assert.Equal(TimeSpan.Zero, viewModel.Elapsed);
     }
 
     [Fact]
-    public void Elapsed_WithLastUpdatedBeforeStartedAt_ReturnsZero()
+    public void Elapsed_WithUpdatedTimestamp_ReturnsCorrectTimeSpan()
     {
         // Arrange
         var jobId = Guid.NewGuid();
-        var startTime = DateTime.UtcNow;
-        var lastUpdated = DateTime.UtcNow.AddMinutes(-10); // Earlier than start
+        var startTime = DateTime.UtcNow.AddMinutes(-10);
         var jobStatus = new JobStatus
         {
             JobId = jobId.ToString(),
@@ -741,12 +723,56 @@ public class CurrentJobViewModelTests
             Stage = "Processing",
             Percent = 50,
             IsRunning = true,
-            Timestamp = startTime,
-            LastUpdated = lastUpdated
+            Timestamp = startTime
         };
-
-        // Act
         var viewModel = CurrentJobViewModel.FromJobStatus(jobStatus);
+
+        // Update with new timestamp
+        var updateTime = DateTime.UtcNow;
+        var update = new JobStatus
+        {
+            JobId = jobId.ToString(),
+            Stage = "Processing",
+            Percent = 60,
+            IsRunning = true,
+            Timestamp = updateTime
+        };
+        viewModel.ApplyUpdate(update);
+
+        // Assert
+        var expectedElapsed = updateTime - startTime;
+        Assert.Equal(expectedElapsed, viewModel.Elapsed);
+    }
+
+    [Fact]
+    public void Elapsed_WithTimestampBeforeStartedAt_ReturnsZero()
+    {
+        // This test simulates a scenario where an update has a timestamp before the job started
+        // which would be an unusual case but should be handled gracefully
+        var jobId = Guid.NewGuid();
+        var startTime = DateTime.UtcNow;
+        var jobStatus = new JobStatus
+        {
+            JobId = jobId.ToString(),
+            FileName = "test.mp4",
+            Stage = "Processing",
+            Percent = 50,
+            IsRunning = true,
+            Timestamp = startTime
+        };
+        var viewModel = CurrentJobViewModel.FromJobStatus(jobStatus);
+
+        // Apply an update with an earlier timestamp
+        var earlierTime = DateTime.UtcNow.AddMinutes(-10);
+        var update = new JobStatus
+        {
+            JobId = jobId.ToString(),
+            Stage = "Processing",
+            Percent = 60,
+            IsRunning = true,
+            Timestamp = earlierTime
+        };
+        viewModel.ApplyUpdate(update);
 
         // Assert
         Assert.Equal(TimeSpan.Zero, viewModel.Elapsed);
@@ -906,8 +932,7 @@ public class CurrentJobViewModelTests
             Stage = "Starting",
             Percent = 0,
             IsRunning = true,
-            Timestamp = startTime,
-            LastUpdated = startTime
+            Timestamp = startTime
         };
         var viewModel = CurrentJobViewModel.FromJobStatus(initialStatus);
 
@@ -923,7 +948,7 @@ public class CurrentJobViewModelTests
             Stage = "Downloading",
             Percent = 25,
             IsRunning = true,
-            LastUpdated = startTime.AddMinutes(2)
+            Timestamp = startTime.AddMinutes(2)
         };
         viewModel.ApplyUpdate(downloadingUpdate);
         Assert.Equal("Downloading", viewModel.Stage);
@@ -936,7 +961,7 @@ public class CurrentJobViewModelTests
             Stage = "Processing",
             Percent = 50,
             IsRunning = true,
-            LastUpdated = startTime.AddMinutes(5)
+            Timestamp = startTime.AddMinutes(5)
         };
         viewModel.ApplyUpdate(processingUpdate);
         Assert.Equal("Processing", viewModel.Stage);
@@ -949,7 +974,7 @@ public class CurrentJobViewModelTests
             Stage = "Complete",
             Percent = 100,
             IsRunning = true,
-            LastUpdated = startTime.AddMinutes(10)
+            Timestamp = startTime.AddMinutes(10)
         };
         viewModel.ApplyUpdate(completeUpdate);
         Assert.Equal("Complete", viewModel.Stage);
@@ -971,9 +996,7 @@ public class CurrentJobViewModelTests
             Stage = "Processing",
             Percent = 45,
             IsRunning = true,
-            Timestamp = DateTime.UtcNow.AddMinutes(-5),
-            LastUpdated = DateTime.UtcNow,
-            EstimatedTimeRemaining = TimeSpan.FromMinutes(5)
+            Timestamp = DateTime.UtcNow
         };
         var viewModel = CurrentJobViewModel.FromJobStatus(jobStatus);
 
