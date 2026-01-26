@@ -15,3 +15,8 @@ It will do this by interacting with the API defined here: https://github.com/log
 
 ## Architecture
 UI → VODPipeline-API → VODPipeline-DB
+
+### Related Projects
+This application is part of a multi-component system:
+- **[VODPipeline-API](https://github.com/loganmj/VODPipeline-API)** - Backend API service
+- **[VODPipeline-Function](https://github.com/loganmj/VODPipeline-Function)** - Stateless function app for video processing
