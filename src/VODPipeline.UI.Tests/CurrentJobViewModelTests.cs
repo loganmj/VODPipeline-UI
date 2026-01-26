@@ -706,7 +706,6 @@ public class CurrentJobViewModelTests
         var viewModel = CurrentJobViewModel.FromJobStatus(jobStatus);
 
         // Assert
-        var expectedElapsed = startTime - startTime; // Since both are now the same
         Assert.Equal(TimeSpan.Zero, viewModel.Elapsed);
     }
 
