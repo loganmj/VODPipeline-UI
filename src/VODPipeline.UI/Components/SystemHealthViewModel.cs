@@ -81,13 +81,14 @@ namespace VODPipeline.UI.Components
         /// <summary>
         /// Updates the API subsystem health status.
         /// This method is called when receiving apiHeartbeat SignalR events.
+        /// Status is recalculated based on heartbeat age.
         /// </summary>
         public void UpdateApiHealth(Data.SystemHealth systemHealth)
         {
             if (systemHealth == null)
                 throw new ArgumentNullException(nameof(systemHealth));
 
-            Api = CopySystemHealth(systemHealth);
+            Api = CopySystemHealthWithRecalculatedStatus(systemHealth);
             LastUpdatedAt = DateTime.UtcNow;
             IsHealthy = CalculateIsHealthy();
         }
@@ -95,13 +96,14 @@ namespace VODPipeline.UI.Components
         /// <summary>
         /// Updates the Function subsystem health status.
         /// This method is called when receiving functionHeartbeat SignalR events.
+        /// Status is recalculated based on heartbeat age.
         /// </summary>
         public void UpdateFunctionHealth(Data.SystemHealth systemHealth)
         {
             if (systemHealth == null)
                 throw new ArgumentNullException(nameof(systemHealth));
 
-            Function = CopySystemHealth(systemHealth);
+            Function = CopySystemHealthWithRecalculatedStatus(systemHealth);
             LastUpdatedAt = DateTime.UtcNow;
             IsHealthy = CalculateIsHealthy();
         }
@@ -109,6 +111,7 @@ namespace VODPipeline.UI.Components
         /// <summary>
         /// Updates the Database subsystem health status.
         /// This method is called when receiving dbStatusChanged SignalR events.
+        /// Status is taken directly from the event.
         /// </summary>
         public void UpdateDatabaseHealth(Data.SystemHealth systemHealth)
         {
@@ -123,6 +126,7 @@ namespace VODPipeline.UI.Components
         /// <summary>
         /// Updates the FileShare subsystem health status.
         /// This method is called when receiving fileShareStatusChanged SignalR events.
+        /// Status is taken directly from the event.
         /// </summary>
         public void UpdateFileShareHealth(Data.SystemHealth systemHealth)
         {
@@ -186,6 +190,51 @@ namespace VODPipeline.UI.Components
                 LastHeartbeat = systemHealth.LastHeartbeat,
                 Message = systemHealth.Message
             };
+        }
+
+        /// <summary>
+        /// Creates a copy of a SystemHealth with status recalculated based on heartbeat age.
+        /// Uses the heartbeat thresholds to determine the appropriate health status.
+        /// </summary>
+        private static Data.SystemHealth CopySystemHealthWithRecalculatedStatus(Data.SystemHealth systemHealth)
+        {
+            var status = CalculateStatusFromHeartbeat(systemHealth.LastHeartbeat);
+            return new Data.SystemHealth
+            {
+                Status = status,
+                LastHeartbeat = systemHealth.LastHeartbeat,
+                Message = systemHealth.Message
+            };
+        }
+
+        /// <summary>
+        /// Calculates health status based on heartbeat age using defined thresholds:
+        /// - Healthy: Last heartbeat is ≤ 10 seconds old
+        /// - Degraded: Last heartbeat is > 10 seconds but ≤ 30 seconds old
+        /// - Unhealthy: Last heartbeat is > 30 seconds old
+        /// - Unknown: No heartbeat received yet or timestamp is missing
+        /// </summary>
+        private static HealthStatus CalculateStatusFromHeartbeat(DateTime? lastHeartbeat)
+        {
+            if (!lastHeartbeat.HasValue || lastHeartbeat.Value == default(DateTime))
+            {
+                return HealthStatus.Unknown;
+            }
+
+            var age = DateTime.UtcNow - lastHeartbeat.Value;
+
+            if (age.TotalSeconds <= 10)
+            {
+                return HealthStatus.Healthy;
+            }
+            else if (age.TotalSeconds <= 30)
+            {
+                return HealthStatus.Degraded;
+            }
+            else
+            {
+                return HealthStatus.Unhealthy;
+            }
         }
     }
 }

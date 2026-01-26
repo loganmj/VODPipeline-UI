@@ -289,7 +289,7 @@ public class SystemHealthViewModelTests
         var updatedApiHealth = new SystemHealth
         {
             Status = HealthStatus.Degraded,
-            LastHeartbeat = DateTime.UtcNow,
+            LastHeartbeat = DateTime.UtcNow.AddSeconds(-15), // 15 seconds old for Degraded
             Message = "API is slow"
         };
 
@@ -553,11 +553,11 @@ public class SystemHealthViewModelTests
         Assert.True(viewModel.IsHealthy);
         Assert.False(viewModel.HasErrors);
 
-        // Act - Function becomes degraded
+        // Act - Function becomes degraded (heartbeat 15 seconds old)
         viewModel.UpdateFunctionHealth(new SystemHealth
         {
             Status = HealthStatus.Degraded,
-            LastHeartbeat = DateTime.UtcNow,
+            LastHeartbeat = DateTime.UtcNow.AddSeconds(-15), // 15 seconds old for Degraded
             Message = "Function experiencing delays"
         });
 
@@ -579,7 +579,7 @@ public class SystemHealthViewModelTests
         Assert.Equal(HealthStatus.Unhealthy, viewModel.Api.Status);
         Assert.Equal(HealthStatus.Degraded, viewModel.Function.Status);
 
-        // Act - Function recovers
+        // Act - Function recovers (recent heartbeat)
         viewModel.UpdateFunctionHealth(new SystemHealth
         {
             Status = HealthStatus.Healthy,
@@ -592,7 +592,7 @@ public class SystemHealthViewModelTests
         Assert.Equal(HealthStatus.Healthy, viewModel.Function.Status);
         Assert.Equal(HealthStatus.Unhealthy, viewModel.Api.Status);
 
-        // Act - API recovers
+        // Act - API recovers (recent heartbeat)
         viewModel.UpdateApiHealth(new SystemHealth
         {
             Status = HealthStatus.Healthy,
@@ -616,13 +616,13 @@ public class SystemHealthViewModelTests
         viewModel.UpdateApiHealth(new SystemHealth
         {
             Status = HealthStatus.Degraded,
-            LastHeartbeat = DateTime.UtcNow,
+            LastHeartbeat = DateTime.UtcNow.AddSeconds(-15), // 15 seconds old for Degraded
             Message = "API slow"
         });
         viewModel.UpdateFunctionHealth(new SystemHealth
         {
             Status = HealthStatus.Unhealthy,
-            LastHeartbeat = DateTime.UtcNow,
+            LastHeartbeat = DateTime.UtcNow.AddSeconds(-60), // 60 seconds old for Unhealthy
             Message = "Function down"
         });
 
@@ -635,8 +635,8 @@ public class SystemHealthViewModelTests
         {
             Systems = new Dictionary<string, SystemHealth>
             {
-                ["API"] = new SystemHealth { Status = HealthStatus.Healthy, Message = "All good" },
-                ["Function"] = new SystemHealth { Status = HealthStatus.Healthy, Message = "All good" },
+                ["API"] = new SystemHealth { Status = HealthStatus.Healthy, LastHeartbeat = DateTime.UtcNow, Message = "All good" },
+                ["Function"] = new SystemHealth { Status = HealthStatus.Healthy, LastHeartbeat = DateTime.UtcNow, Message = "All good" },
                 ["Database"] = new SystemHealth { Status = HealthStatus.Healthy, Message = "All good" },
                 ["FileShare"] = new SystemHealth { Status = HealthStatus.Healthy, Message = "All good" }
             },
@@ -650,6 +650,204 @@ public class SystemHealthViewModelTests
         Assert.Equal(HealthStatus.Healthy, viewModel.Function.Status);
         Assert.Equal("All good", viewModel.Api.Message);
         Assert.Equal("All good", viewModel.Function.Message);
+    }
+
+    #endregion
+
+    #region Heartbeat Age Status Calculation Tests
+
+    [Fact]
+    public void UpdateFunctionHealth_WithRecentHeartbeat_SetsHealthyStatus()
+    {
+        // Arrange
+        var healthStatus = CreateHealthySystemHealthResponse();
+        var viewModel = SystemHealthViewModel.FromSystemHealthResponse(healthStatus);
+
+        var functionHealth = new SystemHealth
+        {
+            Status = HealthStatus.Unknown, // Status will be recalculated
+            LastHeartbeat = DateTime.UtcNow, // Recent heartbeat (now)
+            Message = "Function running"
+        };
+
+        // Act
+        viewModel.UpdateFunctionHealth(functionHealth);
+
+        // Assert
+        Assert.Equal(HealthStatus.Healthy, viewModel.Function.Status);
+        Assert.Equal("Function running", viewModel.Function.Message);
+    }
+
+    [Fact]
+    public void UpdateFunctionHealth_WithHeartbeat12SecondsOld_SetsDegradedStatus()
+    {
+        // Arrange
+        var healthStatus = CreateHealthySystemHealthResponse();
+        var viewModel = SystemHealthViewModel.FromSystemHealthResponse(healthStatus);
+
+        var functionHealth = new SystemHealth
+        {
+            Status = HealthStatus.Healthy, // Status will be recalculated
+            LastHeartbeat = DateTime.UtcNow.AddSeconds(-12), // 12 seconds old
+            Message = "Function slow"
+        };
+
+        // Act
+        viewModel.UpdateFunctionHealth(functionHealth);
+
+        // Assert
+        Assert.Equal(HealthStatus.Degraded, viewModel.Function.Status);
+        Assert.Equal("Function slow", viewModel.Function.Message);
+    }
+
+    [Fact]
+    public void UpdateFunctionHealth_WithHeartbeat45SecondsOld_SetsUnhealthyStatus()
+    {
+        // Arrange
+        var healthStatus = CreateHealthySystemHealthResponse();
+        var viewModel = SystemHealthViewModel.FromSystemHealthResponse(healthStatus);
+
+        var functionHealth = new SystemHealth
+        {
+            Status = HealthStatus.Healthy, // Status will be recalculated
+            LastHeartbeat = DateTime.UtcNow.AddSeconds(-45), // 45 seconds old
+            Message = "Function not responding"
+        };
+
+        // Act
+        viewModel.UpdateFunctionHealth(functionHealth);
+
+        // Assert
+        Assert.Equal(HealthStatus.Unhealthy, viewModel.Function.Status);
+        Assert.Equal("Function not responding", viewModel.Function.Message);
+    }
+
+    [Fact]
+    public void UpdateFunctionHealth_WithNoHeartbeat_SetsUnknownStatus()
+    {
+        // Arrange
+        var healthStatus = CreateHealthySystemHealthResponse();
+        var viewModel = SystemHealthViewModel.FromSystemHealthResponse(healthStatus);
+
+        var functionHealth = new SystemHealth
+        {
+            Status = HealthStatus.Healthy, // Status will be recalculated
+            LastHeartbeat = null, // No heartbeat
+            Message = "No heartbeat received"
+        };
+
+        // Act
+        viewModel.UpdateFunctionHealth(functionHealth);
+
+        // Assert
+        Assert.Equal(HealthStatus.Unknown, viewModel.Function.Status);
+        Assert.Equal("No heartbeat received", viewModel.Function.Message);
+    }
+
+    [Fact]
+    public void UpdateFunctionHealth_WithDefaultHeartbeat_SetsUnknownStatus()
+    {
+        // Arrange
+        var healthStatus = CreateHealthySystemHealthResponse();
+        var viewModel = SystemHealthViewModel.FromSystemHealthResponse(healthStatus);
+
+        var functionHealth = new SystemHealth
+        {
+            Status = HealthStatus.Healthy, // Status will be recalculated
+            LastHeartbeat = default(DateTime), // Default timestamp
+            Message = "Default timestamp"
+        };
+
+        // Act
+        viewModel.UpdateFunctionHealth(functionHealth);
+
+        // Assert
+        Assert.Equal(HealthStatus.Unknown, viewModel.Function.Status);
+        Assert.Equal("Default timestamp", viewModel.Function.Message);
+    }
+
+    [Fact]
+    public void UpdateApiHealth_WithHeartbeat10SecondsOld_SetsHealthyStatus()
+    {
+        // Arrange - Heartbeat just under 10 second threshold to account for test execution time
+        var healthStatus = CreateHealthySystemHealthResponse();
+        var viewModel = SystemHealthViewModel.FromSystemHealthResponse(healthStatus);
+
+        var apiHealth = new SystemHealth
+        {
+            Status = HealthStatus.Degraded, // Status will be recalculated
+            LastHeartbeat = DateTime.UtcNow.AddSeconds(-9.5), // Just under 10 seconds
+            Message = "API at threshold"
+        };
+
+        // Act
+        viewModel.UpdateApiHealth(apiHealth);
+
+        // Assert - Should be Healthy (< 10 seconds)
+        Assert.Equal(HealthStatus.Healthy, viewModel.Api.Status);
+    }
+
+    [Fact]
+    public void UpdateApiHealth_WithHeartbeat30SecondsOld_SetsDegradedStatus()
+    {
+        // Arrange - Heartbeat just under 30 second threshold to account for test execution time
+        var healthStatus = CreateHealthySystemHealthResponse();
+        var viewModel = SystemHealthViewModel.FromSystemHealthResponse(healthStatus);
+
+        var apiHealth = new SystemHealth
+        {
+            Status = HealthStatus.Healthy, // Status will be recalculated
+            LastHeartbeat = DateTime.UtcNow.AddSeconds(-29.5), // Just under 30 seconds
+            Message = "API at threshold"
+        };
+
+        // Act
+        viewModel.UpdateApiHealth(apiHealth);
+
+        // Assert - Should be Degraded (< 30 seconds)
+        Assert.Equal(HealthStatus.Degraded, viewModel.Api.Status);
+    }
+
+    [Fact]
+    public void UpdateDatabaseHealth_RecalculatesStatusBasedOnHeartbeat()
+    {
+        // Arrange
+        var healthStatus = CreateHealthySystemHealthResponse();
+        var viewModel = SystemHealthViewModel.FromSystemHealthResponse(healthStatus);
+
+        var databaseHealth = new SystemHealth
+        {
+            Status = HealthStatus.Unhealthy, // Should be preserved (status change events don't recalculate)
+            LastHeartbeat = DateTime.UtcNow.AddSeconds(-5), // 5 seconds old
+            Message = "Database OK"
+        };
+
+        // Act
+        viewModel.UpdateDatabaseHealth(databaseHealth);
+
+        // Assert - Status should be Unhealthy as passed (not recalculated for status change events)
+        Assert.Equal(HealthStatus.Unhealthy, viewModel.Database.Status);
+    }
+
+    [Fact]
+    public void UpdateFileShareHealth_RecalculatesStatusBasedOnHeartbeat()
+    {
+        // Arrange
+        var healthStatus = CreateHealthySystemHealthResponse();
+        var viewModel = SystemHealthViewModel.FromSystemHealthResponse(healthStatus);
+
+        var fileShareHealth = new SystemHealth
+        {
+            Status = HealthStatus.Healthy, // Should be preserved (status change events don't recalculate)
+            LastHeartbeat = DateTime.UtcNow.AddSeconds(-20), // 20 seconds old
+            Message = "FileShare responding slowly"
+        };
+
+        // Act
+        viewModel.UpdateFileShareHealth(fileShareHealth);
+
+        // Assert - Status should be Healthy as passed (not recalculated for status change events)
+        Assert.Equal(HealthStatus.Healthy, viewModel.FileShare.Status);
     }
 
     #endregion
